@@ -1,0 +1,17 @@
+Package: rpkg
+Title: What the Package Does (Prepare MSMplus input)
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Nikolaos",
+           family = "Skourlis",
+           role = c("aut", "cre"),
+           email = "nikolaos.skourlis@ki.se",
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: Prepare MSMplus input.
+License: 
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Suggests: 
+    testthat
