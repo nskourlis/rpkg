@@ -1,5 +1,5 @@
 ---
-title: "Preparing the Input files for MSMplus"
+title: "MSMplus"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{MSMplus_application_input}
@@ -14,7 +14,9 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+# Files input preparation
+
+```{r setup,results = 'hide',message = FALSE, warning = FALSE}
 library(rpkg)
 library("survival")
 library("mstate")
@@ -37,31 +39,31 @@ The user can also, locally launch the MSMplus application by writting MSMplus_pr
 
 Disclaimer:This package aims to be an aid for the creation of the MSM input files. The use of the MSMplus_prepare functions
 can impose limitations on some of the tuning parameters options. The best practice would be for the researcher to run the analysis
-and then create an excel file of the appropriate format to feed to the app according to the tutorial https://nskbiostatistics.shinyapps.io/supplementary/
+and then create an excel file of the appropriate format to feed to the app according to the [tutorial](https://nskbiostatistics.shinyapps.io/supplementary/)
 
-Function msboxes_R
-Generating information to create a multi-state graph  with updated frequencies in each state across different timepoints
+## Function msboxes_R
+### Generating information to create a multi-state graph  with updated frequencies in each state across different timepoints
 
 We will start by using data from the European Blood and Marrow Transplant registry. The dataset consists of 2204 patients who received bone marrow transplantation. The three states a patient can be in is 1) Post- transplant, 2) Platelet recovery 3) Relapse/Death. The covariate patterns used in this example are the 3 age categories, namely <20 y.old, 20-40y.old and >40 y.old .
-```{r, echo = FALSE}
+```{r, echo = TRUE}
 ebmt<- read.csv("C:/Users/niksko/Desktop/mstate/jsonread/ebmt.csv",header=TRUE, sep=",")
 
 head(ebmt)
 ```
 
-Let's first define the transition matrix
-```{r, echo = FALSE}
+### Let's first define the transition matrix
+```{r, echo = TRUE}
 tmat <- transMat(x = list(c(2, 3),c(3), c() ), names = c("Transplant", "Platelet Recovery", "Relapse/Death" ) )
 ```
 
-We will now create dummy variables for the age categories
-```{r, echo = FALSE}
+### We will now create dummy variables for the age categories
+```{r, echo = TRUE}
 ebmt$age2=  recode(ebmt$age, ">40" =0, "20-40"=1,"<=20" =0 )
 ebmt$age3=  recode(ebmt$age, ">40" =1, "20-40"=0,"<=20" =0 )
 ```
 
 Data preparation- From one row per participant to multiple rows per participant, one for each allowed transition.
-```{r, echo = FALSE}
+```{r, echo = TRUE}
 msebmt <- msprep(data = ebmt, trans = tmat, 
                  time = c(NA, "prtime", "rfstime"), status = c(NA, "prstat", "rfsstat"), keep=c("age2","age3"))
 
@@ -69,10 +71,16 @@ head(msebmt)
 ```
 
 
-We can now call function msboxes_R
-```{r, echo = FALSE,message = FALSE}
+### We can now call function msboxes_R
+msboxes_R will create a json file containing parameters that will help MSMplus to automatically create 
+the multi-state graph of each specific setting. However, the user has the option to design and create the
+multistate graph within the app as well. 
+```{r, echo = TRUE,message = FALSE}
+
 results3_days=rpkg::msboxes_R(data=msebmt,id= msebmt$id, yb=c(0.3,0.5,0.75),
                         xb=c(0.5,0.2,0.7),boxwidth=0.1,boxheight=0.1,
-                        tmat.= tmat, time_study=msebmt$Tstop,vartime=c(seq(0,10,by=0.1)),scale=365.25,
-                        jsonpath="C:/Users/niksko/Desktop/mstate3/datasets/json/flexsurv/json_present_flexsurv/", name="msboxes_EBMT_R.json" ) 
+                        tmat.= tmat, time_study=msebmt$Tstop,vartime=c(seq(0,10,by=1)),scale=365.25,
+                        jsonpath="rpkg/data", name="msboxes_EBMT_R.json" ) 
+results3_days
+
 ```
