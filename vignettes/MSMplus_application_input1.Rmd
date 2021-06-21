@@ -183,11 +183,11 @@ pat3$strata <- pat3$trans
 ```
 
 ```{r, echo = FALSE}
-results_semipar <- semipar_mstate_json(x=cfcox,  qmat=tmat, process="Markov", 
+results_semipar <- rpkg::semipar_mstate_json(x=cfcox,  qmat=tmat, process="Markov", 
                                 totlos=TRUE, ci.json=TRUE, cl.json=0.95, B.json=100,
                                 variance=TRUE, vartype="greenwood",
                                 covariates_list=list(pat1 ,pat2, pat3 ) , M=100,
-                                jsonpath="~",
+                                jsonpath="C:/Users/niksko/Desktop/rpkg/data",
                                 name="predictions_EBMT_mstate_fw.json")
 results_semipar
 ```
