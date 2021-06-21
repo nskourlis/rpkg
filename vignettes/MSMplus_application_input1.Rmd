@@ -141,7 +141,11 @@ results_cf <- rpkg::flexsurv_json( model=cfwei.list, vartime=seq(365.25,365.25,b
                           covariates_list=list(pat1,pat2,pat3), 
                           jsonpath="C:/Users/niksko/Desktop/rpkg/data",
                           name="predictions_EBMT_flex_fw.json" ) 
-results_cf
+results_cf$timevar[1:10]
+results_cf$Nats[1:10]
+results_cf$atlist[1:10]
+results_cf$tmat
+names(results_cf)
 ```
 
 If the user has used the clock reset approach they have to specify "semiMarkov" at the process argument.
@@ -152,16 +156,16 @@ If the user has used the clock reset approach they have to specify "semiMarkov" 
 ### Semi parametric analysis
 
 #### Semi markov
-```{r, echo = FALSE}
+```{r, echo = TRUE}
 crcox <- coxph(Surv(time, status) ~ strata(trans), data = msebmt)
 ```
 
 #### Markov
-```{r, echo = FALSE}
+```{r, echo = TRUE}
 cfcox <- coxph(Surv(Tstart, Tstop, status) ~ strata(trans), data = msebmt)
 ```
 
-```{r, echo = FALSE}
+```{r, echo = TRUE}
 wh1 <- which(msebmt$age2 == 0 & msebmt$age3 == 0)
 pat1 <- msebmt[rep(wh1[1], 3), 9:10]
 pat1$trans <- 1:3
@@ -182,14 +186,18 @@ attr(pat3, "trans") <- tmat
 pat3$strata <- pat3$trans
 ```
 
-```{r, echo = FALSE}
-results_semipar <- rpkg::semipar_mstate_json(x=cfcox,  qmat=tmat, process="Markov", 
+```{r, echo = TRUE}
+results_semipar <- rpkg::mstatejson(x=cfcox,  qmat=tmat, process="Markov", 
                                 totlos=TRUE, ci.json=TRUE, cl.json=0.95, B.json=100,
                                 variance=TRUE, vartype="greenwood",
                                 covariates_list=list(pat1 ,pat2, pat3 ) , M=100,
                                 jsonpath="C:/Users/niksko/Desktop/rpkg/data",
                                 name="predictions_EBMT_mstate_fw.json")
-results_semipar
+results_semipar$timevar[1:10]
+results_semipar$Nats[1:10]
+results_semipar$atlist[1:10]
+results_semipar$tmat
+names(results_semipar)
 ```
 
 
@@ -244,7 +252,7 @@ Q<- rbind(c(0,0.25,0,0.25),c(0.166,0,0.166,0.166),c(0,0.25,0,0.25),c(0,0,0,0))
 ```
 
 ### Apply the msm model
-```{r, echo = TRUE}
+```{r, echo = TRUE,results = 'hide'}
     cavsex.msm<- msm(state~years, covariates=~sex, id,data=cav,qmatrix=q.crude, deathexact = 4, control=list(trace=1,REPORT=1)) 
     summary(cavsex.msm)
 ```
@@ -258,7 +266,11 @@ results <- rpkg::msmjson(msm.model=cavsex.msm, vartime=seq(1,3,1), mat.init=q.cr
                        covariates_list=list(list(sex = 1),list(sex = 0)), 
                        jsonpath="C:/Users/niksko/Desktop/mstate3/datasets/json/msm/json_present_msm",
                        name="predictions_cav_R.json" ) 
-results
+results$timevar[1:10]
+results$Nats[1:10]
+results$atlist[1:10]
+results$tmat
+names(results)
 ```    
     
     
