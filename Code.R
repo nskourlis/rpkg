@@ -50,4 +50,11 @@ sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/flexjson2.R")
 sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/msboxes_R.R")
 sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/msmjson2.R")
 
+usethis::use_package("survival", type = "Imports")
+usethis::use_package("mstate", type = "Imports")
+usethis::use_package("msm", type = "Imports")
+usethis::use_package("stringi", type = "Imports")
+usethis::use_package("RJSONIO", type = "Imports")
+
+
 

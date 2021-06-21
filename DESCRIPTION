@@ -17,3 +17,9 @@ Suggests:
     testthat
 Depends: 
     R (>= 2.10)
+Imports: 
+    stringi,
+    msm,
+    mstate,
+    survival,
+    RJSONIO
