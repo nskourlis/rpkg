@@ -8,7 +8,7 @@ Authors@R:
            email = "nikolaos.skourlis@ki.se",
            comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: Prepare MSMplus input.
-License: 
+License: Karolinska
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
@@ -21,5 +21,4 @@ Imports:
     stringi,
     msm,
     mstate,
-    survival,
-    RJSONIO
+    survival

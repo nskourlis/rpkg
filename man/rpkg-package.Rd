@@ -4,12 +4,12 @@
 \name{rpkg-package}
 \alias{rpkg}
 \alias{rpkg-package}
-\title{rpkg: What the Package Does (One Line, Title Case)}
+\title{rpkg: What the Package Does (Prepare MSMplus input)}
 \description{
-What the package does (one paragraph).
+Prepare MSMplus input.
 }
 \author{
-\strong{Maintainer}: First Last \email{first.last@example.com} (\href{https://orcid.org/YOUR-ORCID-ID}{ORCID})
+\strong{Maintainer}: Nikolaos Skourlis \email{nikolaos.skourlis@ki.se} (\href{https://orcid.org/YOUR-ORCID-ID}{ORCID})
 
 }
 \keyword{internal}

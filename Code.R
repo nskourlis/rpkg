@@ -46,9 +46,13 @@ usethis::use_data(df_epil, overwrite = TRUE)
 
 
 pacman::p_load(sinew)
-sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/flexjson2.R")
 sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/msboxes_R.R")
+sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/freq_total.R")
+sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/freq_total_msm.R")
 sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/msmjson2.R")
+sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/flexjson2.R")
+sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/mstatejson2.R")
+
 
 usethis::use_package("survival", type = "Imports")
 usethis::use_package("mstate", type = "Imports")
