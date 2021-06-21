@@ -1,0 +1,19 @@
+---
+title: "MSMplus_application_input"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{MSMplus_application_input}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(rpkg)
+```

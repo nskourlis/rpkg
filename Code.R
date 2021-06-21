@@ -82,7 +82,7 @@ sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/msmjson2.R")
 sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/flexjson2.R")
 sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/mstatejson2.R")
 pacman::p_load(sinew)
-sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/runMSMplus.R")
+sinew::makeOxyFile("C:/Users/niksko/Desktop/rpkg/R/MSMplus.R")
 
 usethis::use_package("survival", type = "Imports")
 usethis::use_package("mstate", type = "Imports")
@@ -126,7 +126,7 @@ usethis::use_package("webshot", type = "Imports")
 
 devtools::check()
 
-usethis::use_vignette(name = "Package preparing input for MSMplus application")
+usethis::use_vignette(name = "MSMplus_application_input")
 
 
-runMSMplus()
+rpkg::runMSMplus()

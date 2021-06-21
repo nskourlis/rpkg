@@ -1,6 +1,3 @@
-
-
-
 #' @title FUNCTION_TITLE
 #' @description FUNCTION_DESCRIPTION
 
@@ -14,11 +11,10 @@
 #' }
 #' @seealso 
 #'  \code{\link[shiny]{runApp}}
-#' @rdname runMSMplus
+#' @rdname MSMplus
 #' @export 
 #' @importFrom shiny runApp
-#' 
-runMSMplus <- function() {
+MSMplus <- function() {
   appDir <- system.file("Shiny", "MSMplus", package = "rpkg")
   if (appDir == "") {
     stop("Could not find example directory. Try re-installing `mypackage`.", call. = FALSE)
