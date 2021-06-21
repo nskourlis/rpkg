@@ -1,7 +1,3 @@
-
-
-
-
 ### Function calling the msm functions, making predictions for a number of different covariate patterns, ####
 ### joining them together and creating a json file to be fed to the Rshiny app                           ####
 
@@ -54,6 +50,29 @@
 #' @rdname msmjson
 #' @export 
 #' @importFrom stringi stri_sort
+
+
+
+
+
+### Function calling the msm functions, making predictions for a number of different covariate patterns, ####
+### joining them together and creating a json file to be fed to the Rshiny app                           ####
+
+## The msmjson function needs to be fed with an msm.model, a Q matrix, a time variable (vartime) and a covariate pattern list (covariates_list) ###
+
+## If the jsonpath option is not defined the Default for jsonpath is user's home directory ###
+
+## The rest of the options correspond directly to options of the msm functions 
+#  ci.json -> ci
+#  ci.json -> ci
+#  cl.json -> cl
+#  B.json  -> B
+#  cores.json -> cores
+#  piecewise.times.json -> piecewise.times
+#  piecewise.covariates.json -> piecewise.covariates
+#  num.integ.json-> num.integ
+
+
 msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude, 
                     totlos=TRUE, visit=TRUE, sojourn=TRUE, pnext=TRUE, efpt=TRUE, envisits=TRUE,
                     ci.json="normal", cl.json=0.95, B.json=1000,
@@ -84,21 +103,21 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
   nstates=ncol(mat)
   states=c(seq(1:nstates))
   
-#  for (i in 1:nstates) {
-#    for (k in 1:nstates) {
-#      
-#      if  (mat.init[i,k]>0)  {  
-#        
-#        trmat[i,k]=as.integer(p)
-#        p=p+1
-#      } 
-#      #    else if (mat.init[i,k]>0)  {  
-#      #      trmat[i,k]=as.character("NA")
-#      #  }
-#      
-#      
-#    }
-#  }
+  #  for (i in 1:nstates) {
+  #    for (k in 1:nstates) {
+  #      
+  #      if  (mat.init[i,k]>0)  {  
+  #        
+  #        trmat[i,k]=as.integer(p)
+  #        p=p+1
+  #      } 
+  #      #    else if (mat.init[i,k]>0)  {  
+  #      #      trmat[i,k]=as.character("NA")
+  #      #  }
+  #      
+  #      
+  #    }
+  #  }
   
   trmat=matrix(nrow=nstates, ncol=nstates, NA)
   
@@ -130,38 +149,38 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
   for (k in 1:ntransitions) {
     tr_end_state[k]=which(trmat == k, arr.ind = TRUE)[1,2]
   }
-
   
-
   
- #state_kind=vector()
- #for (i in 1:nstates) {
- #  if (length(which(mat[,i]==0))==nrow(mat)) {state_kind[i]="Starting"}
- #  else if (length(which(mat[i,]==0))==ncol(mat)) {state_kind[i]="Absorbing"}
- #  else {state_kind[i]="Intermediate"}
- #}
- #st_states=which(state_kind=="Starting")
- #na_states=which(state_kind=="Intermediate")
- #ab_states=which(state_kind=="Absorbing")
+  
+  
+  state_kind=vector()
+  for (i in 1:nstates) {
+    if (length(which(mat[,i]==0))==nrow(mat)) {state_kind[i]="Starting"}
+    else if (length(which(mat[i,]==0))==ncol(mat)) {state_kind[i]="Absorbing"}
+    else {state_kind[i]="Intermediate"}
+  }
+  st_states=which(state_kind=="Starting")
+  na_states=which(state_kind=="Intermediate")
+  ab_states=which(state_kind=="Absorbing")
   
   intermediate_list=list()
   intermediate_list[[1]]=unique(tr_start_state)
   
- # Ntransitions=length(mat[which(mat>0)])
+  Ntransitions=length(mat[which(mat>0)])
   
   
   
   ################################################################### 
-    
-    library("msm")
-    library("stringi")
-    library("RJSONIO")
+  
+  library("msm")
+  library("stringi")
+  library("RJSONIO")
   
   pred=list() 
-    
+  
   for (g in 1:length(covariates_list)) {
     
-  #  g=1
+    #  g=1
     
     ################################################################################################################
     
@@ -843,20 +862,20 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
     
     
     pred[[g]]=  list(probs=plist,probs_lci=plist_lci,probs_uci=plist_uci,
-         trans=trans, trans_lci=trans_lci,trans_uci=trans_uci,
-         los=loslist,los_lci=loslist_lci,los_uci=loslist_uci,
-         soj=sojlist,soj_lci=sojlist_lci,soj_uci=sojlist_uci,
-         nextv=nextlist,nextv_lci=nextlist_lci,nextv_uci=nextlist_uci,
-         first=firstlist,first_lci=firstlist_lci,first_uci=firstlist_uci,
-         number=numberlist,number_lci=numberlist_lci,number_uci=numberlist_uci,
-         visit=vlist,visit_lci=vlist_lci, visit_uci=vlist_uci
+                     trans=trans, trans_lci=trans_lci,trans_uci=trans_uci,
+                     los=loslist,los_lci=loslist_lci,los_uci=loslist_uci,
+                     soj=sojlist,soj_lci=sojlist_lci,soj_uci=sojlist_uci,
+                     nextv=nextlist,nextv_lci=nextlist_lci,nextv_uci=nextlist_uci,
+                     first=firstlist,first_lci=firstlist_lci,first_uci=firstlist_uci,
+                     number=numberlist,number_lci=numberlist_lci,number_uci=numberlist_uci,
+                     visit=vlist,visit_lci=vlist_lci, visit_uci=vlist_uci
     )
     
   }
   
   
-
-
+  
+  
   
   
   ########################################################################################################
@@ -2081,8 +2100,8 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
   )
   
   final_list$timevar=as.vector(final_list$timevar)
-
- # final_list$atlistjson=as.vector(final_list$atlistjson[[1]])
+  
+  # final_list$atlistjson=as.vector(final_list$atlistjson[[1]])
   
   final_unlist= unlist(final_list, recursive=FALSE)
   

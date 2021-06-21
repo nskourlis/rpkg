@@ -53,6 +53,17 @@ df_epil <-DT.epil
 # write data in correct format to data folder ----
 usethis::use_data(df_epil, overwrite = TRUE)
 
+#ebmt data
+ebmt <-  read.csv("C:/Users/niksko/Desktop/mstate/jsonread/ebmt.csv",header=TRUE, sep=",")
+
+# write data in correct format to data folder ----
+usethis::use_data(ebmt, overwrite = TRUE)
+
+#cav data
+library(msm)
+# write data in correct format to data folder ----
+usethis::use_data(cav, overwrite = TRUE)
+
 #' Seizure Counts for Epileptics
 #'
 #' @description Thall and Vail (1990) give a data set on two-week 
@@ -126,7 +137,10 @@ usethis::use_package("webshot", type = "Imports")
 
 devtools::check()
 
-usethis::use_vignette(name = "MSMplus_application_input")
+usethis::use_vignette(name = "MSMplus_application_input1")
+usethis::use_vignette(name = "MSMplus_application_input2")
+usethis::use_vignette(name = "MSMplus_application_input3")
+usethis::use_vignette(name = "MSMplus_application_input4")
 
 
 rpkg::runMSMplus()
