@@ -146,6 +146,54 @@ results_cf
 
 If the user has used the clock reset approach they have to specify "semiMarkov" at the process argument.
 
+## Multi-state model analysis: Using semipar_mstate_json function together with mstate package
+
+
+### Semi parametric analysis
+
+#### Semi markov
+```{r, echo = FALSE}
+crcox <- coxph(Surv(time, status) ~ strata(trans), data = msebmt)
+```
+
+#### Markov
+```{r, echo = FALSE}
+cfcox <- coxph(Surv(Tstart, Tstop, status) ~ strata(trans), data = msebmt)
+```
+
+```{r, echo = FALSE}
+wh1 <- which(msebmt$age2 == 0 & msebmt$age3 == 0)
+pat1 <- msebmt[rep(wh1[1], 3), 9:10]
+pat1$trans <- 1:3
+attr(pat1, "trans") <- tmat
+pat1$strata <- pat1$trans
+
+
+wh2 <- which(msebmt$age2 == 1 & msebmt$age3 == 0)
+pat2 <- msebmt[rep(wh2[1], 3), 9:10]
+pat2$trans <- 1:3
+attr(pat2, "trans") <- tmat
+pat2$strata <- pat2$trans
+
+wh3 <- which(msebmt$age2 == 0 & msebmt$age3 == 1)
+pat3 <- msebmt[rep(wh3[1], 3), 9:10]
+pat3$trans <- 1:3
+attr(pat3, "trans") <- tmat
+pat3$strata <- pat3$trans
+```
+
+```{r, echo = FALSE}
+results_semipar <- semipar_mstate_json(x=cfcox,  qmat=tmat, process="Markov", 
+                                totlos=TRUE, ci.json=TRUE, cl.json=0.95, B.json=100,
+                                variance=TRUE, vartype="greenwood",
+                                covariates_list=list(pat1 ,pat2, pat3 ) , M=100,
+                                jsonpath="~",
+                                name="predictions_EBMT_mstate_fw.json")
+results_semipar
+```
+
+
+
 
 
 
@@ -158,7 +206,6 @@ options(scipen = 999,"digits"=10)
 ```{r, echo = TRUE}
 head(cav)
 ```
-
 
 
 ### Renaming variable PTNUM to id
@@ -211,6 +258,7 @@ results <- rpkg::msmjson(msm.model=cavsex.msm, vartime=seq(1,3,1), mat.init=q.cr
                        covariates_list=list(list(sex = 1),list(sex = 0)), 
                        jsonpath="C:/Users/niksko/Desktop/mstate3/datasets/json/msm/json_present_msm",
                        name="predictions_cav_R.json" ) 
+results
 ```    
     
     
