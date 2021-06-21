@@ -129,5 +129,4 @@ devtools::check()
 usethis::use_vignette(name = "MSMplus_application_input")
 
 
-rpkg::MSMplus
-()
+rpkg::MSMplus()
