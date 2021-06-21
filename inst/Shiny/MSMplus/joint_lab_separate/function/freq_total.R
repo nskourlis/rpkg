@@ -1,30 +1,5 @@
 
 
-#' @title FUNCTION_TITLE
-#' @description FUNCTION_DESCRIPTION
-#' @param msdata PARAM_DESCRIPTION
-#' @param msid PARAM_DESCRIPTION
-#' @param names_of_ststates PARAM_DESCRIPTION
-#' @param values_ststates PARAM_DESCRIPTION
-#' @param names_of_nastates PARAM_DESCRIPTION
-#' @param values_nastates PARAM_DESCRIPTION
-#' @param names_of_abstates PARAM_DESCRIPTION
-#' @param values_abstates PARAM_DESCRIPTION
-#' @param names_of_transitions PARAM_DESCRIPTION
-#' @param values_of_transitions PARAM_DESCRIPTION
-#' @param time PARAM_DESCRIPTION
-#' @param timevar PARAM_DESCRIPTION
-#' @param scale_inner PARAM_DESCRIPTION, Default: 1
-#' @return OUTPUT_DESCRIPTION
-#' @details DETAILS
-#' @examples 
-#' \dontrun{
-#' if(interactive()){
-#'  #EXAMPLE1
-#'  }
-#' }
-#' @rdname freq_func_total
-#' @export 
 freq_func_total <- function(msdata,msid,names_of_ststates, values_ststates,
                             names_of_nastates, values_nastates,
                             names_of_abstates,values_abstates,
@@ -177,7 +152,7 @@ freq_func_total <- function(msdata,msid,names_of_ststates, values_ststates,
 
 fr_time=bind_rows(fr, .id = "time_label")
 
-
+fr_time
 
 }
 

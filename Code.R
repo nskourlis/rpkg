@@ -89,5 +89,9 @@ usethis::use_package("msm", type = "Imports")
 usethis::use_package("stringi", type = "Imports")
 usethis::use_package("RJSONIO", type = "Imports")
 
+devtools::check()
+
+usethis::use_vignette(name = "Package preparing input for MSMplus application")
 
 
+mypackage::runMSMplus()

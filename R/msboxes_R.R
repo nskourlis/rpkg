@@ -117,8 +117,8 @@ freq_func_total <- function(msdata,msid,names_of_ststates, values_ststates,
     # data<- read.csv("C:/Users/niksko/Desktop/mstate/jsonread/msset_ebmt.csv",header=TRUE, sep=";")
     options(scipen = 999)  
     data=msdata
-    attach(data)
-    names(data)
+    #attach(data)
+    #names(data)
     
     data$time_tot=time       #######################################
     

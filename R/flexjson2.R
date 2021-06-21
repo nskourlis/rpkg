@@ -38,13 +38,15 @@ flexsurv_json <- function( model=cffpm.list, vartime=seq(365.25,730.5,by=365.25)
   options(scipen = 999,"digits"=14)
   
   #if (require(flexsurv)) install.packages("flexsurv")
-  if (require(survival)) install.packages("survival")
-  if (require(mstate)) install.packages("mstate")
-  if (require(tidyverse)) install.packages("tidyverse")
   
-  install.packages("msm")
-  install.packages("stringi")
-  install.packages("RJSONIO")
+  if (!require(survival))  install.packages("survival")
+  if (!require(mstate))    install.packages("mstate")
+  if (!require(tidyverse)) install.packages("tidyverse")
+  
+  if (!require(msm))  install.packages("msm")
+  if (!require(stringi))    install.packages("stringi")
+  if (!require(RJSONIO)) install.packages("RJSONIO")
+
   
   library("msm")
   library("stringi")
