@@ -17,6 +17,7 @@
 #' @rdname runMSMplus
 #' @export 
 #' @importFrom shiny runApp
+#' 
 runMSMplus <- function() {
   appDir <- system.file("Shiny", "MSMplus", package = "rpkg")
   if (appDir == "") {
