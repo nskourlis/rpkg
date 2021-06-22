@@ -43,15 +43,6 @@ library("mstate")
 library("tidyverse")
 head(cav)
 # clean data ----
-epil <- cav
-DT <- epil %>% as.data.table
-DT.base <- DT %>% distinct(PTNUM, .keep_all = TRUE)
-DT.base[,`:=`(years=0)]
-DT.epil <- rbind(DT, DT.base)
-df_epil <-DT.epil
-
-# write data in correct format to data folder ----
-usethis::use_data(df_epil, overwrite = TRUE)
 
 #ebmt data
 ebmt <-  read.csv("C:/Users/niksko/Desktop/mstate/jsonread/ebmt.csv",header=TRUE, sep=",")
@@ -138,9 +129,7 @@ usethis::use_package("webshot", type = "Imports")
 devtools::check()
 
 usethis::use_vignette(name = "MSMplus_application_input1")
-usethis::use_vignette(name = "MSMplus_application_input2")
-usethis::use_vignette(name = "MSMplus_application_input3")
-usethis::use_vignette(name = "MSMplus_application_input4")
+
 
 
 rpkg::runMSMplus()

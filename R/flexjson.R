@@ -1,26 +1,120 @@
 
-#' @title FUNCTION_TITLE
-#' @description FUNCTION_DESCRIPTION
-#' @param model PARAM_DESCRIPTION, Default: cffpm.list
-#' @param vartime PARAM_DESCRIPTION, Default: seq(365.25, 730.5, by = 365.25)
-#' @param qmat PARAM_DESCRIPTION, Default: tmat
-#' @param process PARAM_DESCRIPTION, Default: 'Markov'
-#' @param totlos PARAM_DESCRIPTION, Default: TRUE
-#' @param ci.json PARAM_DESCRIPTION, Default: TRUE
-#' @param cl.json PARAM_DESCRIPTION, Default: 0.95
-#' @param B.json PARAM_DESCRIPTION, Default: 100
-#' @param tcovs PARAM_DESCRIPTION, Default: NULL
-#' @param Mjson PARAM_DESCRIPTION, Default: 100
-#' @param variance PARAM_DESCRIPTION, Default: FALSE
-#' @param covariates_list PARAM_DESCRIPTION, Default: list(pat1, pat2, pat3)
-#' @param jsonpath PARAM_DESCRIPTION, Default: 'C:/Users/niksko/Desktop/mstate3/datasets/json/flexsurv/json_present_flexsurv'
-#' @param name PARAM_DESCRIPTION, Default: 'predictions_EBMT_flex_fw.json'
-#' @return OUTPUT_DESCRIPTION
+#' @title flexjson
+#' @description Function flexjson can receive models from flexsurv package.
+#' It then uses functions from flexsurv package internally to estimate multi-state model 
+#' measures such as transition probabilities, length of stay, and confidence intervals of the
+#' estimations. Function flexjson then take these results and reshapes them so that they can
+#' be fed to MSMplus properly as a json file.
+#' 
+#' @param model The hazard model (or list of hazard models), fit with flexsurv
+#'  Default:NULL
+#' @param vartime A vector of time points for which predictions will be made.
+#'  Default: 0. Functions from flexsurv package used: pmatrix.fs, pmatrix.simfs 
+#' @param qmat the user has to supply the transition matrix, Default: NULL
+#' @param process "Markov" for clock forward approach, "semiMarkov" 
+#' for clock reset approach, Default: 'Markov'
+#' @param totlos Estimate total length of stay spent in each state "TRUE", "FALSE",
+#'  Default: TRUE
+#' @param ci.json Estimate confidence intervals, "TRUE", "FALSE", Default: TRUE
+#' @param cl.json Specify confidence level, Default: 0.95
+#' @param B.json Number of simulations from the normal asymptotic distribution used to calculate variances. 
+#' Decrease for greater speed at the expense of accuracy, Default: 100
+#' @param tcovs Predictable time-dependent covariates , Default: NULL
+#' @param Mjson Number of individuals to simulate in order to approximate the transition probabilities. 
+#' Users should adjust this to obtain the required precision. Default: 100
+#' @param variance Calculate the variances and covariances of the transition cumulative hazards (TRUE or FALSE).
+#'  This is based on simulation from the normal asymptotic distribution of the estimates, which is computationally-expensive., Default: FALSE
+#' @param covariates_list The user can specify different covariate patterns
+#' for which predictions will be made, Default: list()
+#' @param jsonpath specify the path of the folder that the json file should be saved, Default: ""
+#' @param name Specify the name of the output json file, Default: 'predictions.json'
+#' @return returns a list of objects: the time variable
+#' the number of covariate patterns, the names of covariate patterns, the transition matrix,
+#' the number of transitions, the transition probabilities, transition intensities
+#' length of stay, their confidence intervals 
 #' @details DETAILS
 #' @examples 
 #' \dontrun{
 #' if(interactive()){
 #'  #EXAMPLE1
+#'  
+#' 
+
+#' head(ebmt)
+#' 
+#' 
+#' ### Let's first define the transition matrix
+#' 
+#' tmat <- transMat(x = list(c(2, 3),c(3), c() ), names = c("Transplant", "Platelet Recovery", "Relapse/Death" ) )
+#' 
+#' 
+#' ### We will now create dummy variables for the age categories
+#' 
+#' ebmt$age2=  recode(ebmt$age, ">40" =0, "20-40"=1,"<=20" =0 )
+#' ebmt$age3=  recode(ebmt$age, ">40" =1, "20-40"=0,"<=20" =0 )
+#' 
+#' 
+#' #Data preparation- From one row per participant to multiple rows per participant, one for each allowed transition.
+#' 
+#' msebmt <- msprep(data = ebmt, trans = tmat, 
+#'                  time = c(NA, "prtime", "rfstime"), status = c(NA, "prstat", "rfsstat"), keep=c("age2","age3"))
+#' 
+#' head(msebmt)
+#' 
+
+#' ## Multi-state model analysis: Using flexsurv_json function together with flexsurv package
+#' 
+#' ### Provide time vector
+#' 
+#' tgrid <- seq(1, 10, by = 1)   
+#' 
+#' ### Provide transition matrix
+#' 
+#' tmat <- rbind(c(NA, 1, 2), c(NA, NA, 3), c(NA, NA, NA)) 
+#' 
+#' 
+#' ### Run transition specific hazard models: Clock forward approach and use of flexible parametric models
+#' 
+#' 
+#' cfwei.list<-vector(3,mode="list")
+#' 
+#' for (i in 1:3) {
+#'   
+#'   cfwei.list[[i]]<-flexsurvreg(Surv(Tstart,Tstop,status)~age2+age3,subset=(trans==i),
+#'                                dist="weibull",data=msebmt)
+#' }
+#' 
+#' 
+#' 
+#' ### Prediction for different covariate patterns (the 3 age categories)
+#' 
+#' wh1 <- which(msebmt$age2 == 0 & msebmt$age3 == 0)
+#' pat1 <- msebmt[rep(wh1[1], 3), 9:10]
+#' attr(pat1, "trans") <- tmat
+#' 
+#' 
+#' wh2 <- which(msebmt$age2 == 1 & msebmt$age3 == 0)
+#' pat2 <- msebmt[rep(wh2[1], 3), 9:10]
+#' attr(pat2, "trans") <- tmat
+#' 
+#' wh3 <- which(msebmt$age2 == 0 & msebmt$age3 == 1)
+#' pat3 <- msebmt[rep(wh3[1], 3), 9:10]
+#' attr(pat3, "trans") <- tmat
+#' 
+#' 
+#' 
+#' 
+#' results_cf <- rpkg::flexsurv_json( model=cfwei.list, vartime=seq(365.25,365.25,by=365.25), qmat=tmat, process="Markov",
+#'                                    totlos=TRUE, ci.json=FALSE, cl.json=0.95, B.json=10, tcovs=NULL,
+#'                                    Mjson=100, variance=FALSE,
+#'                                    covariates_list=list(pat1,pat2,pat3), 
+#'                                    jsonpath="~",
+#'                                    name="predictions_EBMT_flex_fw.json" ) 
+#' 
+#' 
+#' 
+#' 
+#'  
 #'  }
 #' }
 #' @seealso 

@@ -18,31 +18,97 @@
 
 #' @title FUNCTION_TITLE
 #' @description FUNCTION_DESCRIPTION
-#' @param msm.model PARAM_DESCRIPTION
-#' @param vartime PARAM_DESCRIPTION, Default: seq(1, 10, 1)
-#' @param mat.init PARAM_DESCRIPTION, Default: q.crude
-#' @param totlos PARAM_DESCRIPTION, Default: TRUE
-#' @param visit PARAM_DESCRIPTION, Default: TRUE
-#' @param sojourn PARAM_DESCRIPTION, Default: TRUE
-#' @param pnext PARAM_DESCRIPTION, Default: TRUE
-#' @param efpt PARAM_DESCRIPTION, Default: TRUE
-#' @param envisits PARAM_DESCRIPTION, Default: TRUE
-#' @param ci.json PARAM_DESCRIPTION, Default: 'normal'
-#' @param cl.json PARAM_DESCRIPTION, Default: 0.95
-#' @param B.json PARAM_DESCRIPTION, Default: 1000
-#' @param cores.json PARAM_DESCRIPTION, Default: NULL
-#' @param piecewise.times.json PARAM_DESCRIPTION, Default: NULL
-#' @param piecewise.covariates.json PARAM_DESCRIPTION, Default: NULL
-#' @param num.integ.json PARAM_DESCRIPTION, Default: FALSE
-#' @param covariates_list PARAM_DESCRIPTION, Default: list(list(sex = 1), list(sex = 0))
-#' @param jsonpath PARAM_DESCRIPTION, Default: '~'
-#' @param name PARAM_DESCRIPTION, Default: 'predictions_R.json'
-#' @return OUTPUT_DESCRIPTION
+#' @param msm.model A fitted multi-state model, as returned by msm.
+#' @param vartime The time points to estimate the transition probabilities for, by default one unit.
+#' @param mat.init A transition intensity matrix. Default: NULL
+#' @param totlos Estimate the total length of stay in each state for the time points 
+#' specified by vartime argument, Default: TRUE
+#' @param visit Estimate the probability of visiting each state for the time points 
+#' specified by vartime argument, Default: TRUE
+#' @param sojourn Estimate the mean sojourn time in each state, Default: TRUE, Default: TRUE
+#' @param pnext Estimate the probability that each state is next, Default: TRUE
+#' @param efpt Estimate the expected first passage time by each state, Default: TRUE
+#' @param envisits Estimate the number of visits in each state , Default: TRUE
+#' @param ci.json  Estimate confidence intervals, Default: 'normal'
+#' @param cl.json Specify confidence level, Default: 0.95
+#' @param B.json Number of simulations from the normal asymptotic distribution used to calculate variances. 
+#' Decrease for greater speed at the expense of accuracy, Default: 100, Default: 1000
+#' @param cores.json Number of cores to use for bootstrapping using parallel processing. See boot.msm for more details., Default: NULL
+#' @param piecewise.times.json 	Times at which piecewise-constant intensities change. 
+#' See pmatrix.piecewise.msm for how to specify this. This is only required for time-inhomogeneous models 
+#' specified using explicit time-dependent covariates, and should not be used for models specified using "pci"., Default: NULL
+#' @param piecewise.covariates.json Covariates on which the piecewise-constant intensities depend. See pmatrix.piecewise.msm for how to specify this., Default: NULL
+#' @param num.integ.json Use numerical integration instead of analytic solution (see below).
+#' @param covariates_list The covariate values to estimate for. This can either be a list of lists:, Default: NULL
+#' @param jsonpath specify the path of the folder that the json file should be saved, Default: ""
+#' @param name Specify the name of the output json file, Default: 'predictions.json'
+#' @return returns a list of objects: the time variable
+#' the number of covariate patterns, the names of covariate patterns, the transition matrix,
+#' the number of transitions, the transition probabilities, transition intensities
+#' length of stay, the other relevant measures estimated and their confidence intervals (if estimated) 
 #' @details DETAILS
 #' @examples 
 #' \dontrun{
 #' if(interactive()){
-#'  #EXAMPLE1
+#' 
+#'# Multi-state model analysis: Using msmjson function together with msm package
+#' 
+#' options(scipen = 999,"digits"=10)
+#' 
+#' head(cav)
+#' 
+#' ### Renaming variable PTNUM to id
+#' 
+#' cav$id=cav$PTNUM
+#' 
+#' ### Defining the transition matrix
+#' 
+#' tmat=matrix(NA,nrow=4,ncol=4)
+#' tmat[1,2]=1; tmat[1,4]=2; tmat[2,1]=3; tmat[2,3]=4
+#' tmat[2,4]=5; tmat[3,2]=6; tmat[3,4]=7
+#' 
+#' ### We can now call function msboxes_R  
+#' 
+#' results3_days=rpkg::msboxes_R(data=cav,id= cav$id, yb=c(0.3,0.5,0.6,0.75), msm=TRUE,
+#'                               xb=c(0.5,0.2,0.7,0.3),boxwidth=0.1,boxheight=0.1,
+#'                               tmat.= tmat, vartime=seq(0,10,by=1),scale=1,
+#'                               jsonpath="C:/Users/niksko/Desktop/mstate3/datasets/json/msm/json_present_msm", name="msboxes_cav_R.json" ) 
+#' 
+#' 
+#' ### Defining the transition matrix with initial values under an initial assumption
+#' 
+#' #0 for transitions not allowed, initial values for rest of transitions under a rationale ##
+#' 
+#' Q<- rbind(c(0,0.25,0,0.25),c(0.166,0,0.166,0.166),c(0,0.25,0,0.25),c(0,0,0,0))
+#' 
+#' 
+#' ### Getting initial Q matrix in a default way- Feed the hand made matrix 
+#' 
+#' q.crude<- crudeinits.msm(state~years, id,data=cav, qmatrix=Q)
+#' 
+#' 
+#' ### Apply the msm model
+#' 
+#' cavsex.msm<- msm(state~years, covariates=~sex, id,data=cav,qmatrix=q.crude, deathexact = 4, control=list(trace=1,REPORT=1)) 
+#' summary(cavsex.msm)
+#' 
+#' 
+#' ### Prediction for different covariate patterns (males and females)
+#' 
+#' results <- rpkg::msmjson(msm.model=cavsex.msm, vartime=seq(1,3,1), mat.init=q.crude,
+#'                          totlos=TRUE, visit=TRUE, sojourn=TRUE, pnext=TRUE, efpt=TRUE, envisits=TRUE,
+#'                          ci.json="normal", cl.json=0.95, B.json=100,
+#'                          cores.json=NULL,piecewise.times.json=NULL, piecewise.covariates.json=NULL,num.integ.json=FALSE,
+#'                          covariates_list=list(list(sex = 1),list(sex = 0)), 
+#'                          jsonpath="C:/Users/niksko/Desktop/mstate3/datasets/json/msm/json_present_msm",
+#'                          name="predictions_cav_R.json" ) 
+#' 
+#' results$timevar[[1]][1:3]
+#' results$Nats
+#' results$atlist
+#' results$tmat
+#' 
+#' 
 #'  }
 #' }
 #' @seealso 
@@ -51,26 +117,6 @@
 #' @export 
 #' @importFrom stringi stri_sort
 
-
-
-
-
-### Function calling the msm functions, making predictions for a number of different covariate patterns, ####
-### joining them together and creating a json file to be fed to the Rshiny app                           ####
-
-## The msmjson function needs to be fed with an msm.model, a Q matrix, a time variable (vartime) and a covariate pattern list (covariates_list) ###
-
-## If the jsonpath option is not defined the Default for jsonpath is user's home directory ###
-
-## The rest of the options correspond directly to options of the msm functions 
-#  ci.json -> ci
-#  ci.json -> ci
-#  cl.json -> cl
-#  B.json  -> B
-#  cores.json -> cores
-#  piecewise.times.json -> piecewise.times
-#  piecewise.covariates.json -> piecewise.covariates
-#  num.integ.json-> num.integ
 
 
 msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude, 

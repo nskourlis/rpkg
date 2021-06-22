@@ -7,7 +7,7 @@ Authors@R:
            role = c("aut", "cre"),
            email = "nikolaos.skourlis@ki.se",
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: Prepare MSMplus input.
+Description: Prepare input files and local deployment of MSMplus.
 License: Karolinska
 Encoding: UTF-8
 LazyData: true
