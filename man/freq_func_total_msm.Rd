@@ -4,7 +4,7 @@
 \alias{freq_func_total_msm}
 \title{FUNCTION_TITLE}
 \usage{
-freq_func_total_msm(data_msm, id_msm, timevar, scale_msm = 1, Ntransitions)
+freq_func_total_msm(data_msm, id_msm, timevar = 1, scale_msm = 1, Ntransitions)
 }
 \arguments{
 \item{data_msm}{PARAM_DESCRIPTION}

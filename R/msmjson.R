@@ -119,19 +119,12 @@
 
 
 
-msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude, 
-                    totlos=TRUE, visit=TRUE, sojourn=TRUE, pnext=TRUE, efpt=TRUE, envisits=TRUE,
-                    ci.json="normal", cl.json=0.95, B.json=1000,
+msmjson <- function(msm.model, vartime=seq(1,1,1), mat.init, 
+                    totlos=FALSE, visit=FALSE, sojourn=FALSE, pnext=FALSE, efpt=FALSE, envisits=FALSE,
+                    ci.json="normal", cl.json=0.95, B.json=100,
                     cores.json=NULL,piecewise.times.json=NULL, piecewise.covariates.json=NULL,num.integ.json=FALSE,
-                    covariates_list=list(list(sex = 1),list(sex = 0)), jsonpath="~",name="predictions_R.json"  )  {
+                    covariates_list=list(), jsonpath="~",name="predictions_R.json"  )  {
   
-  
-  if (!require(survival)) install.packages("msm")
-  if (!require(mstate)) install.packages("stringi")
-  if (!require(tidyverse)) install.packages("RJSONIO")
-  library("msm")
-  library("stringi")
-  library("RJSONIO")
   
   
   ###  Default for jsonpath is user's home directory ####
@@ -149,21 +142,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
   nstates=ncol(mat)
   states=c(seq(1:nstates))
   
-  #  for (i in 1:nstates) {
-  #    for (k in 1:nstates) {
-  #      
-  #      if  (mat.init[i,k]>0)  {  
-  #        
-  #        trmat[i,k]=as.integer(p)
-  #        p=p+1
-  #      } 
-  #      #    else if (mat.init[i,k]>0)  {  
-  #      #      trmat[i,k]=as.character("NA")
-  #      #  }
-  #      
-  #      
-  #    }
-  #  }
+
   
   trmat=matrix(nrow=nstates, ncol=nstates, NA)
   
@@ -218,16 +197,807 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
   
   ################################################################### 
   
-  library("msm")
-  library("stringi")
-  library("RJSONIO")
+ # library("msm")
+ # library("stringi")
+ # library("RJSONIO")
   
   pred=list() 
   
+  #if (length(vartime)==1) {vartime=t(vartime)} 
+  
+  ### First case, overall predictions
+  if (length(covariates_list) == 0) {
+  
+    
+    ################################################################################################################
+    
+    ### Create all the lists to be output even if they will remain vacant ###
+    
+    
+    loslist=list()
+    loslist_lci=list()
+    loslist_uci=list()
+    sojlist=list()
+    sojlist_lci=list()
+    sojlist_uci=list()
+    nextlist=list()
+    nextlist_lci=list()
+    nextlist_uci=list()
+    firstlist=list()
+    firstlist_lci=list()
+    firstlist_uci=list()
+    numberlist=list()
+    numberlist_lci=list()
+    numberlist_uci=list()
+    vlist=list()
+    vlist_lci=list()
+    vlist_uci=list()
+    trans_lci=vector()
+    trans_uci=vector()
+    
+    #################################################################################################################
+    
+    ###Probability    ###
+    mat=mat.init
+    mat[is.na(mat)] <- 0
+    ntransitions=length(mat[which(mat>0)])
+    nstates=ncol(mat)
+    states=c(seq(1:nstates))
+    
+    ##################### Main estimates#####################################################################
+    
+    p_array= array(dim=c(length(vartime),nstates+1,nstates),NA)
+    p_array_lci= array(dim=c(length(vartime),nstates+1,nstates),NA)
+    p_array_uci= array(dim=c(length(vartime),nstates+1,nstates),NA)
+    
+    
+    for (i in vartime) {
+      p.msm <- pmatrix.msm(msm.model,t=vartime[i], t1=0,  ci=ci.json , cl=cl.json, B=B.json,
+                           cores=cores.json )
+      
+      if (ci.json=="none" ) {
+        p_array[i,,]=t(cbind(p.msm,vartime=vartime[i] ))
+      }
+      
+      if (ci.json!="none" ) {
+        p_array[i,,]=t(cbind(p.msm$estimates,vartime=vartime[i] ))
+        p_array_lci[i,,]=t(cbind(p.msm$L,vartime=vartime[i] ))
+        p_array_uci[i,,]=t(cbind(p.msm$U,vartime=vartime[i] ))
+      }
+      
+      
+      
+    }
+    
+    plist=list()
+    for (k in states) {
+      plist[[k]]=p_array[,,k]
+      plist[[k]]=as.data.frame(plist[[k]])
+    }
+    
+    if (length(vartime)==1) {
+      for (k in states) {
+        plist[[k]]=as.data.frame(t(plist[[k]])) 
+      }
+    }
+    
+    for (k in states) {
+      for (j in states) {
+        colnames(plist[[k]])[j]=paste0("P_",k,"_to_",j)
+        
+      }
+      
+      colnames(plist[[k]])[nstates+1]  ="vartime"  
+      
+    } 
+    
+    plist
+    
+    
+    plist_lci=list()
+    plist_uci=list()
+    
+    
+    if (ci.json!="none" ) {
+      
+      ##################### Probabilities lci #####################################################################
+      
+      
+      for (k in states) {
+        plist_lci[[k]]=p_array_lci[,,k]
+        plist_lci[[k]]=as.data.frame(plist_lci[[k]])
+      }
+      
+      if (length(vartime)==1) {
+        for (k in states) {
+          plist_lci[[k]]=as.data.frame(t(plist_lci[[k]])) 
+        }
+      }
+      
+      for (k in states) {
+        for (j in states) {
+          colnames(plist_lci[[k]])[j]=paste0("P_",k,"_to_",j,"_lci")
+          
+        }
+        
+        colnames(plist_lci[[k]])[nstates+1]  ="vartime"  
+        
+      } 
+      
+      plist_lci
+      
+      
+      ##################### Probabilities uci #####################################################################
+      
+      plist_uci=list()
+      for (k in states) {
+        plist_uci[[k]]=p_array_uci[,,k]
+        plist_uci[[k]]=as.data.frame(plist_uci[[k]])
+      }
+      
+      if (length(vartime)==1) {
+        for (k in states) {
+          plist_uci[[k]]=as.data.frame(t(plist_uci[[k]])) 
+        }
+      }
+      
+      for (k in states) {
+        for (j in states) {
+          colnames(plist_uci[[k]])[j]=paste0("P_",k,"_to_",j,"_uci")
+          
+        }
+        
+        colnames(plist_uci[[k]])[nstates+1]  ="vartime"  
+        
+      } 
+      
+      plist_uci
+      
+    }
+    
+    #################################################################################################################
+    
+    ###Transitions values for the period we want (of course they are constant)###
+    
+    
+    ##################### Main estimates#####################################################################
+    
+    qmsm=qmatrix.msm(msm.model,ci=ci.json , cl=cl.json,
+                     B=B.json, cores=cores.json)
+    
+    if (ci.json!="none" ) { 
+      trans=matrix(nrow=length(vartime), ncol=length(qmsm$estimates[which(qmsm$estimates>0)]), NA)
+      for (i in 1:length(vartime)){
+        trans[i,]= qmsm$estimates[which(qmsm$estimates>0)]
+      }
+      
+      trans=as.data.frame(trans)
+      for (i in 1:length(qmsm$estimates[which(qmsm$estimates>0)])   ){
+        colnames(trans)[i]<-paste0("Haz_",tr_start_state[i],"_to_",tr_end_state[i])
+      }
+    }
+    
+    if (ci.json=="none" ) { 
+      trans=matrix(nrow=length(vartime), ncol=length(qmsm[which(qmsm>0)]), NA)
+      for (i in 1:length(vartime)){
+        trans[i,]= qmsm[which(qmsm>0)]
+      }
+      
+      trans=as.data.frame(trans)
+      for (i in 1:length(qmsm[which(qmsm>0)])   ){
+        colnames(trans)[i]<-paste0("Haz_",tr_start_state[i],"_to_",tr_end_state[i])
+      }
+    }
+    
+    trans$vartime=vartime
+    trans
+    
+    ##################### transitions lci and uci #####################################################################
+    
+    if (ci.json!="none" ) {
+      
+      trans_lci=matrix(nrow=length(vartime), ncol=length(qmsm$estimates[which(qmsm$L>0)]), NA)
+      
+      for (i in 1:length(vartime)){
+        trans_lci[i,]= qmsm$L[which(qmsm$L>0)]
+      }
+      
+      trans_lci=as.data.frame(trans_lci)
+      for (i in 1:length(qmsm$L[which(qmsm$L>0)])   ){
+        colnames(trans_lci)[i]<- paste0("Haz_",tr_start_state[i],"_to_",tr_end_state[i],"_lci")  
+      }
+      
+      trans_lci$vartime=vartime
+      trans_lci
+      
+      
+      trans_uci=matrix(nrow=length(vartime), ncol=length(qmsm$estimates[which(qmsm$L>0)]), NA)
+      
+      for (i in 1:length(vartime)){
+        trans_uci[i,]= qmsm$L[which(qmsm$L>0)]
+      }
+      
+      trans_uci=as.data.frame(trans_uci)
+      for (i in 1:length(qmsm$L[which(qmsm$L>0)])   ){
+        colnames(trans_uci)[i]<-paste0("Haz_",tr_start_state[i],"_to_",tr_end_state[i],"_uci")  
+      }
+      
+      trans_uci$vartime=vartime
+      trans_uci
+      
+    }
+    
+    
+    
+    #################################################################################################################
+    
+    ###Los    ###
+    if (totlos==TRUE) {
+      
+      los_array= array(dim=c(length(vartime),nstates+1,nstates),NA)
+      los_array_lci= array(dim=c(length(vartime),nstates+1,nstates),NA)
+      los_array_uci= array(dim=c(length(vartime),nstates+1,nstates),NA)
+      
+      
+      for (j in states) {  
+        for (i in vartime) {
+          los.msm <- totlos.msm(msm.model, start=j, fromt=0, tot= vartime[i],ci=ci.json,cl=cl.json,
+                                piecewise.times=piecewise.times.json, piecewise.covariates=piecewise.covariates.json,
+                                num.integ=num.integ.json,  B=B.json,cores=cores.json)
+          
+          if (ci.json=="none" ) { los_array[i,,j]=cbind(t(los.msm),vartime=vartime[i]  ) }
+          
+          if (ci.json!="none" ) {
+            los_array[i,,j]=cbind(t(los.msm[1,]),vartime=vartime[i]  ) 
+            los_array_lci[i,,j]=cbind(t(round(los.msm[2,],5)),vartime=vartime[i]  )  
+            los_array_uci[i,,j]=cbind(t(round(los.msm[3,],5)),vartime=vartime[i]  ) 
+          }
+          
+        }
+      }
+      
+      loslist=list()
+      
+      for (k in states) {
+        
+        loslist[[k]]=los_array[,,k]
+        loslist[[k]]=as.data.frame(loslist[[k]])
+        
+      }
+      
+      if (length(vartime)==1) {
+        for (k in states) {
+          loslist[[k]]=as.data.frame(t(loslist[[k]])) 
+        }
+      }
+      
+      for (k in states) {
+        for (j in states) {
+          colnames(loslist[[k]])[j]=paste0("Los_",k,"_to_",j)
+          
+        }
+        
+        colnames(loslist[[k]])[nstates+1]  ="vartime"  
+        
+      }
+      loslist
+      ##################### los lci and uci #####################################################################
+      
+      loslist_lci=list()
+      loslist_uci=list()
+      
+      if (ci.json!="none" ) {
+        
+        ###lci
+        
+        
+        for (k in states) {
+          
+          loslist_lci[[k]]=los_array_lci[,,k]
+          loslist_lci[[k]]=as.data.frame(loslist_lci[[k]])
+          
+        }
+        
+        if (length(vartime)==1) {
+          for (k in states) {
+            loslist_lci[[k]]=as.data.frame(t(loslist_lci[[k]])) 
+          }
+        }
+        
+        for (k in states) {
+          for (j in states) {
+            colnames(loslist_lci[[k]])[j]=paste0("Los_",k,"_to_",j,"_lci")
+            
+          }
+          
+          colnames(loslist_lci[[k]])[nstates+1]  ="vartime"  
+          
+        }
+        loslist_lci
+        
+        ###uci
+        
+        for (k in states) {
+          
+          loslist_uci[[k]]=los_array_uci[,,k]
+          loslist_uci[[k]]=as.data.frame(loslist_uci[[k]])
+          
+        }
+        
+        if (length(vartime)==1) {
+          for (k in states) {
+            loslist_uci[[k]]=as.data.frame(t(loslist_uci[[k]])) 
+          }
+        }
+        
+        for (k in states) {
+          for (j in states) {
+            colnames(loslist_uci[[k]])[j]=paste0("Los_",k,"_to_",j,"_uci")
+            
+          }
+          
+          colnames(loslist_uci[[k]])[nstates+1]  ="vartime"  
+          
+        }
+        loslist_uci
+        
+        
+      }
+      
+    }
+    #################################################################################################################
+    
+    ###Sojourn    ###
+    
+    
+    
+    if   (sojourn==TRUE) {
+      
+      sojlist_=list()
+      sojlist_lci=list()
+      sojlist_uci=list()
+      
+      soj.msm=vector()
+      
+      if (ci.json!="none") {
+        soj.msm=sojourn.msm(msm.model,ci=ci.json,cl=cl.json, B=B.json)
+        sojnames= rownames(soj.msm)
+        sojlist=list()
+        sojlist[[1]]=cbind.data.frame(t( soj.msm$estimates))
+        names(sojlist[[1]])[1:(ncol(sojlist[[1]]))]<-paste0("Soj_",sub("State ","",sojnames))
+        sojlist
+        
+        
+        
+        sojlist_lci[[1]]=cbind.data.frame(t(soj.msm$L))
+        
+        sojlist_uci[[1]]=cbind.data.frame(t(soj.msm$U))
+        
+        names(sojlist_lci[[1]])[1:(ncol(sojlist_lci[[1]]))]<-paste0("Soj_",sub("State ","",sojnames),"_lci")
+        names(sojlist_uci[[1]])[1:(ncol(sojlist_uci[[1]]))]<-paste0("Soj_",sub("State ","",sojnames),"_uci")
+      }
+      
+      else if (ci.json =="none") {
+        soj.msm=sojourn.msm(msm.model,ci=ci.json,cl=cl.json, B=B.json)
+        sojlist=list()
+        sojlist[[1]]=cbind.data.frame(t( soj.msm$estimates))
+        sojnames=c(1:ncol(sojlist[[1]]))
+        names(sojlist[[1]])[1:(ncol(sojlist[[1]]))]<-paste0("Soj_",sub("State ","",sojnames))
+        sojlist
+        
+      }
+      
+      
+    }  
+    
+    
+    #################################################################################################################
+    
+    ###Next    ###
+    
+    ########################### Main estimates ####################################################
+    
+    if   (pnext==TRUE) {
+      
+      next_array= array(dim=c(1,nstates,nstates),NA)
+      
+      next.msm <-  pnext.msm(msm.model,ci=ci.json,cl=cl.json, B=B.json,cores=cores.json)
+      
+      next_array[1,,]=t(cbind.data.frame(next.msm$estimates  ))
+      
+      nextlist=list()
+      for (k in states) {
+        nextlist[[k]]=next_array[,,k]
+        nextlist[[k]]=as.data.frame(t(nextlist[[k]]))
+      }
+      
+#      if (length(vartime)==1) {
+#        for (k in states) {
+#          nextlist[[k]]=as.data.frame(t(nextlist[[k]])) 
+#        }
+#      }
+      
+      for (k in states) {
+        for (j in states) {
+          colnames(nextlist[[k]])[j]=paste0("Next_",k,"_to_",j)
+        }
+      } 
+      
+      nextlist
+      
+      ########################### next uci , lci  ####################################################
+      
+      nextlist_lci=list()
+      nextlist_uci=list()
+      
+      if (ci.json!="none" ) {
+        
+        ###lci
+        next_array_lci= array(dim=c(1,nstates,nstates),NA)
+        
+        next_array_lci[1,,]=t(cbind.data.frame(next.msm$L  ))
+        
+        
+        for (k in states) {
+          nextlist_lci[[k]]=next_array_lci[,,k]
+          nextlist_lci[[k]]=as.data.frame(t(nextlist_lci[[k]]))
+        }
+        
+ #       if (length(vartime)==1) {
+ #         for (k in states) {
+ #           nextlist_lci[[k]]=as.data.frame(t(nextlist_lci[[k]])) 
+ #         }
+ #       }
+        
+        for (k in states) {
+          for (j in states) {
+            colnames(nextlist_lci[[k]])[j]=paste0("Next_",k,"_to_",j,"_lci")
+          }
+        } 
+        
+        nextlist_lci 
+        
+        ### uci
+        next_array_uci= array(dim=c(1,nstates,nstates),NA)
+        
+        next_array_uci[1,,]=t(cbind.data.frame(next.msm$U  ))
+        
+        
+        for (k in states) {
+          nextlist_uci[[k]]=next_array_uci[,,k]
+          nextlist_uci[[k]]=as.data.frame(t(nextlist_uci[[k]]))
+        }
+        
+  #      if (length(vartime)==1) {
+  #        for (k in states) {
+  #          nextlist_uci[[k]]=as.data.frame(t(nextlist_uci[[k]])) 
+  #        }
+  #      }
+  #      
+        for (k in states) {
+          for (j in states) {
+            colnames(nextlist_uci[[k]])[j]=paste0("Next_",k,"_to_",j,"_uci")
+          }
+        } 
+        
+        nextlist_uci 
+      }
+      
+    } 
+    ###############################################################################
+    ##First
+    
+    if  (efpt==TRUE) {
+      
+      first.msm=vector()
+      first.msm=  efpt.msm(msm.model, start="all", tostate=states, 
+                           ci=ci.json,cl=cl.json, B=B.json,cores=cores.json)
+      
+      firstlist=list()
+      
+      if (ci.json=="none" ) {
+        firstlist[[1]]=cbind.data.frame(t( first.msm)) 
+      }
+      
+      if (ci.json!="none" ) {
+        firstlist[[1]]=cbind.data.frame(t( first.msm[1,])) 
+      }
+      
+      for (i in 1:nstates) {
+        names( firstlist[[1]])[i]<-paste0("First_",i) 
+      }
+      
+      firstlist_lci=list()
+      firstlist_uci=list()
+      
+      if (ci.json!="none" ) {
+        
+        firstlist_lci[[1]]=cbind.data.frame(t(first.msm[2,]))
+        
+        firstlist_uci[[1]]=cbind.data.frame(t(first.msm[3,]))
+        
+        for (i in 1:nstates) {
+          names( firstlist_lci[[1]])[i]<-paste0("First_",i,"_lci") 
+          names( firstlist_uci[[1]])[i]<-paste0("First_",i,"_uci") 
+        }
+      }
+      
+    }
+    
+    ##########################################################################################
+    
+    ##Number
+    
+    if (envisits==TRUE) {
+      
+      ############Main estimates ########################
+      
+      number_array= array(dim=c(length(vartime),nstates+1,nstates),NA)
+      number_array_lci= array(dim=c(length(vartime),nstates+1,nstates),NA)
+      number_array_uci= array(dim=c(length(vartime),nstates+1,nstates),NA)
+      
+      
+      for (j in states) {  
+        for (i in vartime) {
+          number.msm <- envisits.msm(msm.model, start=j, fromt=0, tot= vartime[i],
+                                     piecewise.times=piecewise.times.json, piecewise.covariates=piecewise.covariates.json,
+                                     num.integ=num.integ.json, 
+                                     ci=ci.json, cl=cl.json, B=B.json,
+                                     cores=cores.json)
+          if (ci.json=="none" ) {  number_array[i,,j]=cbind(t(number.msm),vartime=vartime[i]  ) }
+          
+          if (ci.json!="none" ) {
+            
+            number_array[i,,j]=cbind(t(round(number.msm[1,],5)),vartime=vartime[i]  ) 
+            number_array_lci[i,,j]=cbind(t(round(number.msm[2,],5)),vartime=vartime[i]  ) 
+            number_array_uci[i,,j]=cbind(t(round(number.msm[3,],5)),vartime=vartime[i]  ) 
+          }
+        }
+      }
+      numberlist=list()
+      
+      for (k in states) {
+        
+        numberlist[[k]]=number_array[,,k]
+        numberlist[[k]]=as.data.frame(numberlist[[k]])
+        
+      }
+      
+      if (length(vartime)==1) {
+        for (k in states) {
+          numberlist[[k]]=as.data.frame(t(numberlist[[k]])) 
+        }
+      }
+      
+      for (k in states) {
+        for (j in states) {
+          colnames(numberlist[[k]])[j]=paste0("Number_",k,"_to_",j)
+          
+        }
+        
+        colnames(numberlist[[k]])[nstates+1]  ="vartime"  
+      }
+      numberlist
+      
+      numberlist_lci=list()
+      numberlist_uci=list()
+      
+      if (ci.json!="none" ) {
+        
+        ############ lci estimates ########################
+        
+        for (k in states) {
+          
+          numberlist_lci[[k]]=number_array_lci[,,k]
+          numberlist_lci[[k]]=as.data.frame(numberlist_lci[[k]])
+          
+        }
+        
+        if (length(vartime)==1) {
+          for (k in states) {
+            numberlist_lci[[k]]=as.data.frame(t(numberlist_lci[[k]])) 
+          }
+        }
+        
+        for (k in states) {
+          for (j in states) {
+            colnames(numberlist_lci[[k]])[j]=paste0("Number_",k,"_to_",j,"_lci")
+            
+          }
+          
+          colnames(numberlist_lci[[k]])[nstates+1]  ="vartime"  
+        }
+        numberlist_lci
+        
+        ############ uci estimates ########################
+        
+        for (k in states) {
+          
+          numberlist_uci[[k]]=number_array_uci[,,k]
+          numberlist_uci[[k]]=as.data.frame(numberlist_uci[[k]])
+          
+        }
+        
+        if (length(vartime)==1) {
+          for (k in states) {
+            numberlist_uci[[k]]=as.data.frame(t(numberlist_uci[[k]])) 
+          }
+        }
+        
+        for (k in states) {
+          for (j in states) {
+            colnames(numberlist_uci[[k]])[j]=paste0("Number_",k,"_to_",j,"_uci")
+            
+          }
+          
+          colnames(numberlist_uci[[k]])[nstates+1]  ="vartime"  
+        }
+        numberlist_uci
+        
+      }
+      
+    }
+    
+    
+    ###########################################################################################################
+    ##Visit  
+    
+    if (visit==TRUE) {
+      
+      visit.msm=vector()
+      
+      ######## What should we put in start? 1 or all states
+      
+      
+      visit_array= array(dim=c(length(vartime),nstates+1,nstates),NA)
+      visit_array_lci= array(dim=c(length(vartime),nstates+1,nstates),NA)
+      visit_array_uci= array(dim=c(length(vartime),nstates+1,nstates),NA)
+      
+      
+      for (i in vartime) {
+        visit.msm <- ppass.msm(x=msm.model, qmatrix=NULL, tot=vartime[i], start="all",
+                               piecewise.times=piecewise.times.json, piecewise.covariates=piecewise.covariates.json,
+                               ci=ci.json, cl=cl.json, B=B.json,
+                               cores=cores.json)
+        
+        if (ci.json=="none" ) {visit_array[i,,]=t(cbind(visit.msm,vartime=vartime[i]  )) }
+        
+        if (ci.json!="none" ) {
+          visit_array[i,,]=t(cbind(visit.msm$estimates,vartime=vartime[i]  )) 
+          visit_array_lci[i,,]=t(cbind(visit.msm$L,vartime=vartime[i]  )) 
+          visit_array_uci[i,,]=t(cbind(visit.msm$U,vartime=vartime[i]  )) 
+        }
+      }
+      
+      ####################### Main estimates ########################
+      vlist=list()
+      for (k in states) {
+        vlist[[k]]=visit_array[,,k]
+        vlist[[k]]=as.data.frame(vlist[[k]])
+      }
+      
+      
+      
+      if (length(vartime)==1) {
+        for (k in states) {
+          vlist[[k]]=as.data.frame(t(vlist[[k]])) 
+        }
+      }
+      
+      for (k in states) {
+        for (j in states) {
+          colnames(vlist[[k]])[j]=paste0("Visit_",k,"_to_",j)
+          
+        }
+        
+        colnames(vlist[[k]])[nstates+1]  ="vartime"  
+      } 
+      
+      vlist
+      
+      vlist_lci=list()
+      vlist_uci=list()
+      
+      if (ci.json!="none" ) {
+        ####################### Lci estimates ########################
+        for (k in states) {
+          vlist_lci[[k]]=visit_array_lci[,,k]
+          vlist_lci[[k]]=as.data.frame(vlist_lci[[k]])
+        }
+        
+        if (length(vartime)==1) {
+          for (k in states) {
+            vlist_lci[[k]]=as.data.frame(t(vlist_lci[[k]])) 
+          }
+        }
+        
+        for (k in states) {
+          for (j in states) {
+            colnames(vlist_lci[[k]])[j]=paste0("Visit_",k,"_to_",j,"_lci")
+            
+          }
+          
+          colnames(vlist_lci[[k]])[nstates+1]  ="vartime"  
+        } 
+        vlist_lci
+        ####################### Uci estimates ########################
+        for (k in states) {
+          vlist_uci[[k]]=visit_array_uci[,,k]
+          vlist_uci[[k]]=as.data.frame(vlist_uci[[k]])
+        }
+        
+        if (length(vartime)==1) {
+          for (k in states) {
+            vlist_uci[[k]]=as.data.frame(t(vlist_uci[[k]])) 
+          }
+        }
+        
+        for (k in states) {
+          for (j in states) {
+            colnames(vlist_uci[[k]])[j]=paste0("Visit_",k,"_to_",j,"_uci")
+            
+          }
+          
+          colnames(vlist_uci[[k]])[nstates+1]  ="vartime"  
+        } 
+        vlist_uci
+      }
+      
+    }
+    
+    
+    ###########################################################################################   
+    
+    #  ###Ratio of tr. intensities
+    #  mat
+    #  
+    #   p=1
+    #   qratio=matrix(nrow=1, ncol=length(which(mat>0))^2,NA)
+    #   names.qratio=vector()
+    #   
+    #  for (i in 1:nstates) {
+    #    for (j in 1:nstates) {
+    #      for (k in 1:nstates) {
+    #        for (f in 1:nstates) {
+    #           
+    #          if (mat[k,f]==0 | mat[i,j]==0 | k==f | i==j) {next}
+    #           else if (mat[k,f]!=0 & mat[i,j]!=0 &  k!=f & i!=j ) {
+    #  qratio[1,p]=qratio.msm(msm.model, ind1=c(i,j), ind2=c(k,f), covariates = covariates_list[[g]])[1]
+    #  names.qratio[p]=paste0("Qratio_t1_",i,".",j,"_t2_",k,".",f)
+    #              p=p+1
+    #           }
+    #        }
+    #      }
+    #    }
+    #  }
+    #  
+    #   qratio=as.data.frame(qratio)
+    #   names(qratio)=names.qratio
+    #   
+    #   qratiolist=list()
+    #   qratiolist[[1]]=cbind.data.frame(qratio,cov_factor=rep(paste0(names(covariates_list[[g]]),covariates_list[[g]]),1))
+    
+    ##############################################################################################
+    
+    
+    pred[[1]]=  list(probs=plist,probs_lci=plist_lci,probs_uci=plist_uci,
+                     trans=trans, trans_lci=trans_lci,trans_uci=trans_uci,
+                     los=loslist,los_lci=loslist_lci,los_uci=loslist_uci,
+                     soj=sojlist,soj_lci=sojlist_lci,soj_uci=sojlist_uci,
+                     nextv=nextlist,nextv_lci=nextlist_lci,nextv_uci=nextlist_uci,
+                     first=firstlist,first_lci=firstlist_lci,first_uci=firstlist_uci,
+                     number=numberlist,number_lci=numberlist_lci,number_uci=numberlist_uci,
+                     visit=vlist,visit_lci=vlist_lci, visit_uci=vlist_uci
+    )
+    
+  }
+    
+if (length(covariates_list) != 0) {
+  
   for (g in 1:length(covariates_list)) {
     
-    #  g=1
-    
+ 
+    #g=1
     ################################################################################################################
     
     ### Create all the lists to be output even if they will remain vacant ###
@@ -294,6 +1064,13 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       plist[[k]]=as.data.frame(plist[[k]])
     }
     
+    if (length(vartime)==1) {
+      for (k in states) {
+      plist[[k]]=as.data.frame(t(plist[[k]])) 
+      }
+    }
+    
+    
     for (k in states) {
       for (j in states) {
         colnames(plist[[k]])[j]=paste0("P_",k,"_to_",j)
@@ -321,6 +1098,13 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
         plist_lci[[k]]=as.data.frame(plist_lci[[k]])
       }
       
+      if (length(vartime)==1) {
+        for (k in states) {
+          plist_lci[[k]]=as.data.frame(t(plist_lci[[k]])) 
+        }
+      }
+      
+      
       for (k in states) {
         for (j in states) {
           colnames(plist_lci[[k]])[j]=paste0("P_",k,"_to_",j,"_lci")
@@ -340,6 +1124,12 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       for (k in states) {
         plist_uci[[k]]=p_array_uci[,,k]
         plist_uci[[k]]=as.data.frame(plist_uci[[k]])
+      }
+      
+      if (length(vartime)==1) {
+        for (k in states) {
+          plist_uci[[k]]=as.data.frame(t(plist_uci[[k]])) 
+        }
       }
       
       for (k in states) {
@@ -466,6 +1256,12 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
         
       }
       
+      if (length(vartime)==1) {
+        for (k in states) {
+          loslist[[k]]=as.data.frame(t(loslist[[k]])) 
+        }
+      }
+      
       for (k in states) {
         for (j in states) {
           colnames(loslist[[k]])[j]=paste0("Los_",k,"_to_",j)
@@ -493,6 +1289,13 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
           
         }
         
+        if (length(vartime)==1) {
+          for (k in states) {
+            loslist_lci[[k]]=as.data.frame(t(loslist_lci[[k]])) 
+          }
+        }
+        
+        
         for (k in states) {
           for (j in states) {
             colnames(loslist_lci[[k]])[j]=paste0("Los_",k,"_to_",j,"_lci")
@@ -511,6 +1314,12 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
           loslist_uci[[k]]=los_array_uci[,,k]
           loslist_uci[[k]]=as.data.frame(loslist_uci[[k]])
           
+        }
+        
+        if (length(vartime)==1) {
+          for (k in states) {
+            loslist_uci[[k]]=as.data.frame(t(loslist_uci[[k]])) 
+          }
         }
         
         for (k in states) {
@@ -594,6 +1403,12 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
         nextlist[[k]]=as.data.frame(t(nextlist[[k]]))
       }
       
+#     if (length(vartime)==1) {
+#       for (k in states) {
+#         nextlist[[k]]=as.data.frame(t(nextlist[[k]])) 
+#       }
+#     }
+      
       for (k in states) {
         for (j in states) {
           colnames(nextlist[[k]])[j]=paste0("Next_",k,"_to_",j)
@@ -620,6 +1435,12 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
           nextlist_lci[[k]]=as.data.frame(t(nextlist_lci[[k]]))
         }
         
+ #       if (length(vartime)==1) {
+ #         for (k in states) {
+ #           nextlist_lci[[k]]=as.data.frame(t(nextlist_lci[[k]])) 
+ #         }
+ #       }
+        
         for (k in states) {
           for (j in states) {
             colnames(nextlist_lci[[k]])[j]=paste0("Next_",k,"_to_",j,"_lci")
@@ -638,6 +1459,12 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
           nextlist_uci[[k]]=next_array_uci[,,k]
           nextlist_uci[[k]]=as.data.frame(t(nextlist_uci[[k]]))
         }
+        
+ #      if (length(vartime)==1) {
+ #        for (k in states) {
+ #          nextlist_uci[[k]]=as.data.frame(t(nextlist_uci[[k]])) 
+ #        }
+ #      }
         
         for (k in states) {
           for (j in states) {
@@ -728,6 +1555,12 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
         
       }
       
+      if (length(vartime)==1) {
+        for (k in states) {
+          numberlist[[k]]=as.data.frame(t(numberlist[[k]])) 
+        }
+      }
+      
       for (k in states) {
         for (j in states) {
           colnames(numberlist[[k]])[j]=paste0("Number_",k,"_to_",j)
@@ -752,6 +1585,13 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
           
         }
         
+        
+        if (length(vartime)==1) {
+          for (k in states) {
+            numberlist_lci[[k]]=as.data.frame(t(numberlist_lci[[k]])) 
+          }
+        }
+        
         for (k in states) {
           for (j in states) {
             colnames(numberlist_lci[[k]])[j]=paste0("Number_",k,"_to_",j,"_lci")
@@ -769,6 +1609,12 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
           numberlist_uci[[k]]=number_array_uci[,,k]
           numberlist_uci[[k]]=as.data.frame(numberlist_uci[[k]])
           
+        }
+        
+        if (length(vartime)==1) {
+          for (k in states) {
+            numberlist_uci[[k]]=as.data.frame(t(numberlist_uci[[k]])) 
+          }
         }
         
         for (k in states) {
@@ -823,6 +1669,12 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
         vlist[[k]]=as.data.frame(vlist[[k]])
       }
       
+      if (length(vartime)==1) {
+        for (k in states) {
+          vlist[[k]]=as.data.frame(t(vlist[[k]])) 
+        }
+      }
+      
       for (k in states) {
         for (j in states) {
           colnames(vlist[[k]])[j]=paste0("Visit_",k,"_to_",j)
@@ -844,6 +1696,12 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
           vlist_lci[[k]]=as.data.frame(vlist_lci[[k]])
         }
         
+        if (length(vartime)==1) {
+          for (k in states) {
+            vlist_lci[[k]]=as.data.frame(t(vlist_lci[[k]])) 
+          }
+        }
+        
         for (k in states) {
           for (j in states) {
             colnames(vlist_lci[[k]])[j]=paste0("Visit_",k,"_to_",j,"_lci")
@@ -857,6 +1715,12 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
         for (k in states) {
           vlist_uci[[k]]=visit_array_uci[,,k]
           vlist_uci[[k]]=as.data.frame(vlist_uci[[k]])
+        }
+        
+        if (length(vartime)==1) {
+          for (k in states) {
+            vlist_uci[[k]]=as.data.frame(t(vlist_uci[[k]])) 
+          }
         }
         
         for (k in states) {
@@ -920,7 +1784,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
   }
   
   
-  
+}  
   
   
   
@@ -1115,7 +1979,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
     
     for (k in 1:ntransitions) {
       
-      tmplisth=matrix(nrow =length(covariates_list) , ncol= length(vartime))
+      tmplisth=matrix(nrow =1 , ncol= length(vartime))
       tmplisth[1,]=as.vector(pred[[1]]$trans[,k])
       hjson[[1]]=tmplisth
       assign(paste0("forMSM",names(pred[[1]]$trans)[i]),  hjson[[1]])
@@ -1163,7 +2027,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       for (k in 1:ntransitions) {
         
-        tmplisth=matrix(nrow =length(covariates_list) , ncol= length(vartime))
+        tmplisth=matrix(nrow =1 , ncol= length(vartime))
         tmplisth[1,]=as.vector(pred[[1]]$trans_lci[,k])
         hjson_lci[[1]]=tmplisth
         assign(paste0("forMSM",names(pred[[1]]$trans_lci)[i]),  hjson_lci[[1]])
@@ -1205,7 +2069,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       for (k in 1:ntransitions) {
         
-        tmplisth=matrix(nrow =length(covariates_list) , ncol= length(vartime))
+        tmplisth=matrix(nrow =1 , ncol= length(vartime))
         tmplisth[1,]=as.vector(pred[[1]]$trans_uci[,k])
         hjson_uci[[1]]=tmplisth
         assign(paste0("forMSM",names(pred[[1]]$trans_uci)[i]),  hjson_uci[[1]])
@@ -1402,13 +2266,14 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
     sojjson=list()
     
     if (length(covariates_list)<=1) {
-      
+      p=1
       for (k in na_states) {
         
-        tmplistsoj=matrix(nrow =length(covariates_list) , ncol= 1)
+        tmplistsoj=matrix(nrow =1 , ncol= 1)
         tmplistsoj[1,1]=as.matrix(pred[[1]]$soj[[1]][1])
         sojjson[[1]]=tmplistsoj
         assign(paste0("forMSM",names(pred[[1]]$soj)[i]),  tmplistsoj[[1]])
+        p=p+1  
       }
     }
     
@@ -1436,7 +2301,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
     
     sojvector=stringi::stri_sort(sojvector, numeric = TRUE)
     
-    names(sojjson)=sojvector[1:(p-1)]
+    names(sojjson)=sojvector
     
     if (ci.json!="none" ) {
       
@@ -1445,19 +2310,20 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       sojjson_lci=list()
       
       if (length(covariates_list)<=1) {
-        
-        for (k in 1:3) {
+        p=1
+        for (k in na_states) {
           
-          tmplistsoj=matrix(nrow =length(covariates_list) , ncol= 1)
+          tmplistsoj=matrix(nrow =1 , ncol= 1)
           tmplistsoj[1,1]=as.matrix(pred[[1]]$soj_lci[[1]][1])
           sojjson_lci[[1]]=tmplistsoj
           assign(paste0("forMSM",names(pred[[1]]$soj_lci)[i]),  tmplistsoj[[1]])
+          p=p+1 
         }
       }
       
       if (length(covariates_list)>1) {
         p=1
-        for (k in 1:3) {
+        for (k in na_states) {
           
           tmplistsoj=matrix(nrow =length(covariates_list) , ncol= 1)
           
@@ -1479,7 +2345,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       sojvector_lci=stringi::stri_sort(sojvector_lci, numeric = TRUE)
       
-      names(sojjson_lci)=sojvector_lci[1:(p-1)]      
+      names(sojjson_lci)=sojvector_lci      
       
       
       ### Sojourn uci estimates ##### 
@@ -1487,19 +2353,20 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       sojjson_uci=list()
       
       if (length(covariates_list)<=1) {
-        
-        for (k in 1:3) {
+        p=1 
+        for (k in na_states) {
           
-          tmplistsoj=matrix(nrow =length(covariates_list) , ncol= 1)
+          tmplistsoj=matrix(nrow =1 , ncol= 1)
           tmplistsoj[1,1]=as.matrix(pred[[1]]$soj_uci[[1]][1])
           sojjson_uci[[1]]=tmplistsoj
           assign(paste0("forMSM",names(pred[[1]]$soj_uci)[i]),  tmplistsoj[[1]])
+          p=p+1  
         }
       }
       
       if (length(covariates_list)>1) {
         p=1
-        for (k in 1:3) {
+        for (k in na_states) {
           
           tmplistsoj=matrix(nrow =length(covariates_list) , ncol= 1)
           
@@ -1521,7 +2388,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       sojvector_uci=stringi::stri_sort(sojvector_uci, numeric = TRUE)
       
-      names(sojjson_uci)=sojvector_uci[1:(p-1)]      
+      names(sojjson_uci)=sojvector_uci    
     }        
   }        
   ##########################################################################
@@ -1538,7 +2405,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       for (k in 1:nstates) {
         
-        tmplistnext=matrix(nrow =length(covariates_list) , ncol= 1)
+        tmplistnext=matrix(nrow =1 , ncol= 1)
         tmplistnext[1,1]=as.matrix(pred[[1]]$nextv[[1]][1])
         nextjson[[1]]=tmplistnext
         assign(paste0("forMSM",names(pred[[1]]$nextv)[i]),  tmplistnext[[1]])
@@ -1569,7 +2436,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
     
     nextvector=stringi::stri_sort(nextvector, numeric = TRUE)
     
-    names(nextjson)=nextvector[1:(p-1)]
+    names(nextjson)=nextvector
     
     if (ci.json!="none" ) {
       
@@ -1580,7 +2447,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
         
         for (k in 1:nstates) {
           
-          tmplistnext=matrix(nrow =length(covariates_list) , ncol= 1)
+          tmplistnext=matrix(nrow =1 , ncol= 1)
           tmplistnext[1,1]=as.matrix(pred[[1]]$nextv_lci[[1]][1])
           nextjson_lci[[1]]=tmplistnext
           assign(paste0("forMSM",names(pred[[1]]$nextv_lci)[i]),  tmplistnext[[1]])
@@ -1611,7 +2478,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       nextvector_lci=stringi::stri_sort(nextvector_lci, numeric = TRUE)
       
-      names(nextjson_lci)=nextvector_lci[1:(p-1)]
+      names(nextjson_lci)=nextvector_lci
       
       ####### Next uci estimates ####################################
       
@@ -1621,7 +2488,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
         
         for (k in 1:nstates) {
           
-          tmplistnext=matrix(nrow =length(covariates_list) , ncol= 1)
+          tmplistnext=matrix(nrow =1 , ncol= 1)
           tmplistnext[1,1]=as.matrix(pred[[1]]$nextv_uci[[1]][1])
           nextjson_uci[[1]]=tmplistnext
           assign(paste0("forMSM",names(pred[[1]]$nextv_uci)[i]),  tmplistnext[[1]])
@@ -1652,7 +2519,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       nextvector_uci=stringi::stri_sort(nextvector_uci, numeric = TRUE)
       
-      names(nextjson_uci)=nextvector_uci[1:(p-1)]
+      names(nextjson_uci)=nextvector_uci
     }         
   }
   ###################################################################################################
@@ -1672,7 +2539,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       for (k in 1:3) {
         
-        tmplistfirst=matrix(nrow =length(covariates_list) , ncol= 1)
+        tmplistfirst=matrix(nrow =1 , ncol= 1)
         tmplistfirst[1,1]=as.matrix(pred[[1]]$first[[1]][1])
         firstjson[[1]]=tmplistfirst
         assign(paste0("forMSM",names(pred[[1]]$first)[i]),  tmplistfirst[[1]])
@@ -1703,7 +2570,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
     
     firstvector=stringi::stri_sort(firstvector, numeric = TRUE)
     
-    names(firstjson)=firstvector[1:(p-1)]
+    names(firstjson)=firstvector
     
     if (ci.json!="none" ) {
       
@@ -1715,7 +2582,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
         
         for (k in 1:nstates) {
           
-          tmplistfirst=matrix(nrow =length(covariates_list) , ncol= 1)
+          tmplistfirst=matrix(nrow =1, ncol= 1)
           tmplistfirst[1,1]=as.matrix(pred[[1]]$first_lci[[1]][1])
           firstjson_lci[[1]]=tmplistfirst
           assign(paste0("forMSM",names(pred[[1]]$first_lci)[i]),  tmplistfirst[[1]])
@@ -1746,7 +2613,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       firstvector_lci=stringi::stri_sort(firstvector_lci, numeric = TRUE)
       
-      names(firstjson_lci)=firstvector_lci[1:(p-1)]
+      names(firstjson_lci)=firstvector_lci
       
       
       ####### First uci estimates ####################################
@@ -1757,7 +2624,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
         
         for (k in 1:nstates) {
           
-          tmplistfirst=matrix(nrow =length(covariates_list) , ncol= 1)
+          tmplistfirst=matrix(nrow =1 , ncol= 1)
           tmplistfirst[1,1]=as.matrix(pred[[1]]$first_uci[[1]][1])
           firstjson_uci[[1]]=tmplistfirst
           assign(paste0("forMSM",names(pred[[1]]$first_uci)[i]),  tmplistfirst[[1]])
@@ -1788,7 +2655,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       firstvector_uci=stringi::stri_sort(firstvector_uci, numeric = TRUE)
       
-      names(firstjson_uci)=firstvector_uci[1:(p-1)]
+      names(firstjson_uci)=firstvector_uci
     }
   }      
   ################################################################################################
@@ -1844,7 +2711,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
     
     numbervector=stringi::stri_sort(numbervector, numeric = TRUE)
     
-    names(numberjson)=numbervector[1:(p-1)]
+    names(numberjson)=numbervector
     
     if (ci.json!="none" ) {
       
@@ -1892,7 +2759,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       numbervector_lci=stringi::stri_sort(numbervector_lci, numeric = TRUE)
       
-      names(numberjson_lci)=numbervector_lci[1:(p-1)]
+      names(numberjson_lci)=numbervector_lci
       
       ### Number uci estimates #####
       numberjson_uci=list()
@@ -1937,7 +2804,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
       numbervector_uci=stringi::stri_sort(numbervector_uci, numeric = TRUE)
       
-      names(numberjson_uci)=numbervector_uci[1:(p-1)]  
+      names(numberjson_uci)=numbervector_uci
     }
   }
   
@@ -1992,7 +2859,7 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
     
     visvector=stringi::stri_sort(visvector, numeric = TRUE)
     
-    names(vjson)=visvector[1:(p-1)]
+    names(vjson)=visvector
     
     if (ci.json!="none" ) {
       
@@ -2111,12 +2978,16 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
   ### At list ###
   
   atlistjson=list()
-  atlistmatrix=matrix(nrow=1, ncol=length(covariates_list), NA)
   
   
-  for (j in 1:length(covariates_list) ) {
+  
+if (length(covariates_list)>=1) {
     
-    name_paste=list()
+   atlistmatrix=matrix(nrow=1, ncol=length(covariates_list), NA)
+  
+   for (j in 1:length(covariates_list) ) {
+    
+      name_paste=list()
     
     for (i in 1:length(covariates_list[[j]]) )  {
       
@@ -2124,6 +2995,16 @@ msmjson <- function(msm.model, vartime=seq(1,10,1), mat.init=q.crude,
       
     }
     atlistmatrix[1,j]= paste(unlist(name_paste,recursive=FALSE), collapse = ' ')
+   }
+   
+}
+  
+  if (length(covariates_list)==0) {
+    atlistmatrix=matrix(nrow=1, ncol=1, NA)
+    
+    name_paste= "all"  
+    
+    atlistmatrix[1,1]= name_paste
   }
   
   atlistjson[[1]]=as.vector(atlistmatrix)

@@ -51,6 +51,7 @@ Imports:
     dlm,
     rsvg,
     miniUI,
+    RJSONIO,
     htmltools
 Config/testthat/edition: 3
 VignetteBuilder: knitr

@@ -6,7 +6,7 @@
 \alias{rpkg-package}
 \title{rpkg: What the Package Does (Prepare MSMplus input)}
 \description{
-Prepare MSMplus input.
+Prepare input files and local deployment of MSMplus.
 }
 \author{
 \strong{Maintainer}: Nikolaos Skourlis \email{nikolaos.skourlis@ki.se} (\href{https://orcid.org/YOUR-ORCID-ID}{ORCID})

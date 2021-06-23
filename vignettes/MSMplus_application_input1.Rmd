@@ -49,7 +49,7 @@ and then create an excel file of the appropriate format to feed to the app accor
 
 We will start by using data from the European Blood and Marrow Transplant registry. The dataset consists of 2204 patients who received bone marrow transplantation. The three states a patient can be in is 1) Post- transplant, 2) Platelet recovery 3) Relapse/Death. The covariate patterns used in this example are the 3 age categories, namely <20 y.old, 20-40y.old and >40 y.old .
 ```{r, echo = TRUE}
-ebmt<- read.csv("C:/Users/niksko/Desktop/mstate/jsonread/ebmt.csv",header=TRUE, sep=",")
+load("data/ebmt.rda", envir = parent.frame(), verbose = FALSE)
 
 head(ebmt)
 ```
@@ -82,8 +82,8 @@ multistate graph within the app as well.
 
 results3_days=rpkg::msboxes_R(data=msebmt,id= msebmt$id, yb=c(0.3,0.5,0.75),
                         xb=c(0.5,0.2,0.7),boxwidth=0.1,boxheight=0.1,
-                        tmat.= tmat, time_study=msebmt$Tstop,vartime=c(seq(0,10,by=1)),scale=365.25,
-                        jsonpath="C:/Users/niksko/Desktop/rpkg/data", name="msboxes_EBMT_R.json" ) 
+                        tmat.= tmat, tstop=msebmt$Tstop,vartime=c(seq(0,10,by=1)),scale=365.25,
+                        jsonpath="data", name="msboxes_EBMT_R.json" ) 
 results3_days
 
 ```
@@ -139,7 +139,7 @@ results_cf <- rpkg::flexsurv_json( model=cfwei.list, vartime=seq(365.25,365.25,b
                           totlos=TRUE, ci.json=FALSE, cl.json=0.95, B.json=10, tcovs=NULL,
                           Mjson=100, variance=FALSE,
                           covariates_list=list(pat1,pat2,pat3), 
-                          jsonpath="C:/Users/niksko/Desktop/rpkg/data",
+                          jsonpath="data",
                           name="predictions_EBMT_flex_fw.json" ) 
 ```
 
@@ -193,7 +193,7 @@ results_semipar <- rpkg::mstatejson(x=cfcox,  qmat=tmat, process="Markov",
                                 totlos=TRUE, ci.json=TRUE, cl.json=0.95, B.json=100,
                                 variance=TRUE, vartype="greenwood",
                                 covariates_list=list(pat1 ,pat2, pat3 ) , M=100,
-                                jsonpath="C:/Users/niksko/Desktop/rpkg/data",
+                                jsonpath="data",
                                 name="predictions_EBMT_mstate_fw.json")
 
 ```
@@ -269,7 +269,7 @@ results <- rpkg::msmjson(msm.model=cavsex.msm, vartime=seq(1,3,1), mat.init=q.cr
                        ci.json="normal", cl.json=0.95, B.json=100,
                        cores.json=NULL,piecewise.times.json=NULL, piecewise.covariates.json=NULL,num.integ.json=FALSE,
                        covariates_list=list(list(sex = 1),list(sex = 0)), 
-                       jsonpath="C:/Users/niksko/Desktop/mstate3/datasets/json/msm/json_present_msm",
+                       jsonpath="data",
                        name="predictions_cav_R.json" ) 
 
 ```    

@@ -17,15 +17,15 @@
 #' }
 #' @rdname freq_func_total_msm
 #' @export 
-freq_func_total_msm<- function(data_msm, id_msm, timevar, scale_msm=1, Ntransitions) {
+#' 
+freq_func_total_msm<- function(data_msm, id_msm, timevar=1, scale_msm=1, Ntransitions) {
   
   freq=list()
   
   data_msm$id=id_msm
   
   
-  if (is.null(data_msm$state)) return("provide a variable with the name state")
-  
+ 
   timevar_used=timevar/scale_msm
   
   p=1
@@ -119,6 +119,8 @@ freq_func_total <- function(msdata,msid,names_of_ststates, values_ststates,
     data=msdata
     #attach(data)
     #names(data)
+    
+  #  if (is.null(time)) {time=max(timevar)*scale_inner}
     
     data$time_tot=time       #######################################
     
@@ -256,35 +258,56 @@ freq_func_total <- function(msdata,msid,names_of_ststates, values_ststates,
 #######################################################################################
 
 
-####msboxes###################
+####msboxes_R###################
 
 
-#' @title FUNCTION_TITLE
-#' @description FUNCTION_DESCRIPTION
-#' @param data PARAM_DESCRIPTION
-#' @param id PARAM_DESCRIPTION
-#' @param yb PARAM_DESCRIPTION
-#' @param xb PARAM_DESCRIPTION
-#' @param boxwidth PARAM_DESCRIPTION
-#' @param boxheight PARAM_DESCRIPTION
-#' @param time_study PARAM_DESCRIPTION
-#' @param vartime PARAM_DESCRIPTION
-#' @param tmat. PARAM_DESCRIPTION
-#' @param scale PARAM_DESCRIPTION
-#' @param msm PARAM_DESCRIPTION, Default: FALSE
-#' @param jsonpath PARAM_DESCRIPTION, Default: '~'
-#' @param name PARAM_DESCRIPTION, Default: 'msboxes_R.json'
-#' @return OUTPUT_DESCRIPTION
+#' @title msboxes_R
+#' @description msboxes_R will create a json file containing parameters that will help MSMplus to automatically create 
+#' the multi-state graph of each specific setting. However, the user has the option to design and create the
+#' multistate graph within the app as well.  
+#' @param data Provide a dataset that is properly formatted for a multi-state analysis (eg. after msprep())
+#' @param id Provide an indentity variable
+#' @param yb Provide a vector of values for the y coordinates of the state boxes of the multi-state graph you want to create
+#' @param xb Provide a vector of values for the x coordinates of the state boxes of the multi-state graph you want to create
+#' @param boxwidth Provide the width of the state boxes of the multi-state graph you want to create (default 0.1)
+#' @param boxheight Provide the height of the state boxes of the multi-state graph you want to create (default 0.1)
+#' @param tstop Provide the Tstop variable of your dataset
+#' @param vartime A vector of time points at which the user wants to count the number of people in each state and the number of people that 
+#' have made each transition 
+#' @param tmat. The transition matrix (e.g  transMat(x = list(c(2, 3),c(3), c() )) ). 
+#' @param scale rescale time value
+#' @param msm In case the msm package is used, the function uses statetable.msm to calculate the frequencies.Default: FALSE
+#' @param jsonpath specify the path of the folder that the json file should be saved, Default: ""
+#' @param name Specify the name of the output json file, Default: 'msboxes_R.json'
+#' @return Nstates, Ntransitions, xvalues, yvalues,boxwidth,  boxheight, statenames, transnames, the start and end coordinates of the arrows
+#' that connect the state boxes, tmat, number of people in each state and the number of people that have made each transition 
 #' @details DETAILS
 #' @examples 
 #' \dontrun{
 #' if(interactive()){
-#'  #EXAMPLE1
+#'  #EXAMPLE
+#'  
+#' head(ebmt)
+#' 
+#' tmat <- transMat(x = list(c(2, 3),c(3), c() ), names = c("Transplant", "Platelet Recovery", "Relapse/Death" ) )
+#' 
+#' ebmt$age2=  recode(ebmt$age, ">40" =0, "20-40"=1,"<=20" =0 )
+#' ebmt$age3=  recode(ebmt$age, ">40" =1, "20-40"=0,"<=20" =0 )
+#' 
+#' msebmt <- msprep(data = ebmt, trans = tmat, time = c(NA, "prtime", "rfstime"), status = c(NA, "prstat", "rfsstat"), keep=c("age2","age3"))
+#' 
+#' 
+#' results=rpkg::msboxes_R(data=msebmt,id= msebmt$id, yb=c(0.3,0.5,0.75),
+#'                               xb=c(0.5,0.2,0.7),boxwidth=0.1,boxheight=0.1,
+#'                               tmat.= tmat, tstop=msebmt$Tstop,vartime=c(seq(0,1,by=1)),scale=365.25,
+#'                               jsonpath="data", name="msboxes_EBMT_R.json" ) 
+#' 
+#' results
 #'  }
 #' }
 #' @rdname msboxes_R
 #' @export 
-msboxes_R<- function(data,id,yb,xb,boxwidth,boxheight,time_study,vartime, tmat., scale, msm=FALSE,  jsonpath="~",name="msboxes_R.json" ) {
+msboxes_R<- function(data,id,yb,xb,boxwidth=0.1,boxheight=0.1,tstop,vartime=1, tmat., scale=1, msm=FALSE,  jsonpath="~",name="msboxes_R.json" ) {
    
    
    library(viridis)
@@ -292,6 +315,13 @@ msboxes_R<- function(data,id,yb,xb,boxwidth,boxheight,time_study,vartime, tmat.,
    library(tidyverse)
    library(plyr)
    library(dplyr)
+  
+
+  
+  if (is.null(tmat.))  stop("You need to provide a transition matrix.")
+  
+  
+  if ((length(yb)!=nrow(tmat.)|length(xb)!=nrow(tmat.)) )  stop("The length of xb and yb arguments should much the number of states implied by the transition matrix") 
   
   ##########Read info from transition matrix #############################
   
@@ -344,31 +374,7 @@ msboxes_R<- function(data,id,yb,xb,boxwidth,boxheight,time_study,vartime, tmat.,
   }
 
   ##############################################################################
-  
-  ##########Read info from data #############################
-  
-#  ntransitions=max(data$trans)
-#  nstates= max(data$to)
-#  transitions=order(unique(data$trans))  
-#
-#  d1=unique(from)
-#  d2=unique(to)
-#  states=unique(c(d1,d2))
-#  states=order(states)
-#  st_states=vector()
-#  na_states=vector()
-#  ab_states=vector()
-#
-#  for (i in 1:length(states)) {
-#    if (length(which(data$from==i))==0) {ab_states[i]=states[i]}   }
-#      ab_states=ab_states[!is.na(ab_states)]
-#
-#  for (i in 1:length(states)) {
-#    if (length(which(data$to==i))==0) {st_states[i]=states[i]}   }
-#    st_states=st_states[!is.na(st_states)]
-#
-#  na_states=states[which(states!=ab_states & states!=st_states)]
-###################################################################################
+
 tname=vector()
 for (i in 1: ntransitions) {
   tname[i]=paste0("h",i) }
@@ -388,30 +394,7 @@ for (k in 1:ntransitions) {
   tr_end_state[k]=which(tmat_inner == k, arr.ind = TRUE)[1,2]
 }
 
-#########Count initials in each state- Freq total does that anyway###########
 
-#data=data[order(data$id,data$from,data$to),]
-#
-#dis_id=vector()
-#dis_id=unique(data$id)   ########################
-#
-#listid=list()
-#
-#for (i in 1:length(dis_id)) {
-#  listid[[i]]=as.data.frame(data[data$id==dis_id[i],])
-#}
-#
-#init=array(dim=c(length(dis_id),1,nstates),"NA")
-#for (k in 1:nstates) {
-#  for (i in 1:length(dis_id)) {
-#    if (length(which(listid[[i]]$from[1]==k))!=0) {init[i,1,k]=TRUE} else {init[i,1,k]=FALSE}
-#  }
-#}
-#init_freq=vector()
-#for (k in 1:nstates) {
-#  init_freq[k]=length(which(init[,1,k]=="TRUE"))
-#}
-#init_freq
 
 names_ststates=vector(); names_nastates=vector(); names_abstates=vector();names_transitions=vector();
 
@@ -448,7 +431,7 @@ if (msm==FALSE)  {
                     names_of_nastates=names_nastates, values_nastates=na_states,
                     names_of_abstates=names_abstates, values_abstates=ab_states,
                     names_of_transitions=names_transitions,values_of_transitions=transitions,
-                    time=time_study, timevar=vartime, scale_inner=scale)
+                    time=tstop, timevar=vartime, scale_inner=scale)
   
   p$time_label= as.numeric(p$time_label)
   p=as.matrix(p)
@@ -577,10 +560,5 @@ else{
  
 }
 
-
-#results12=msboxes_R(data=msebmt,id= msebmt$id, yb=c(0.8,0.8,0.8,0.4,0.4,0.4),
-#                    xb=c(0.2,0.5,0.8,0.2,0.5,0.8),boxwidth=0.1,boxheight=0.1,
-#                    tmat.= tmat, time_study=msebmt$time,vartime=c(seq(0,2000,by=200)),scale=1) 
-#
 
 
