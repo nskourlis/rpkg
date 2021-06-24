@@ -50,6 +50,16 @@ ebmt <-  read.csv("C:/Users/niksko/Desktop/mstate/jsonread/ebmt.csv",header=TRUE
 # write data in correct format to data folder ----
 usethis::use_data(ebmt, overwrite = TRUE)
 
+# excel_input_file_ex
+excel_input_file_ex <-  read.csv("C:/Users/niksko/Desktop/mstate4/datasets/csv/csv_present/excel_input_file_example.csv",header=TRUE, sep=",")
+
+# write data in correct format to data folder ----
+usethis::use_data(excel_input_file_ex, overwrite = TRUE)
+
+
+
+
+
 #cav data
 library(msm)
 # write data in correct format to data folder ----

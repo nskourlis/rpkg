@@ -1,16 +1,15 @@
 
-#' @title flexjson
-#' @description Function flexjson can receive models from flexsurv package.
+#' @title flexsurvjson
+#' @description Function flexsurvjson can receive models from flexsurv package.
 #' It then uses functions from flexsurv package internally to estimate multi-state model 
 #' measures such as transition probabilities, length of stay, and confidence intervals of the
-#' estimations. Function flexjson then take these results and reshapes them so that they can
+#' estimations. Function flexsurvjson then take these results and reshapes them so that they can
 #' be fed to MSMplus properly as a json file.
 #' 
 #' @param model The hazard model (or list of hazard models), fit with flexsurv
-#'  Default:NULL
 #' @param vartime A vector of time points for which predictions will be made.
 #'  Default: 0. Functions from flexsurv package used: pmatrix.fs, pmatrix.simfs 
-#' @param qmat the user has to supply the transition matrix, Default: NULL
+#' @param qmat the user has to supply the transition matrix
 #' @param process "Markov" for clock forward approach, "semiMarkov" 
 #' for clock reset approach, Default: 'Markov'
 #' @param totlos Estimate total length of stay spent in each state "TRUE", "FALSE",
@@ -62,7 +61,7 @@
 #' head(msebmt)
 #' 
 
-#' ## Multi-state model analysis: Using flexsurv_json function together with flexsurv package
+#' ## Multi-state model analysis: Using flexsurvjson function together with flexsurv package
 #' 
 #' ### Provide time vector
 #' 
@@ -73,7 +72,7 @@
 #' tmat <- rbind(c(NA, 1, 2), c(NA, NA, 3), c(NA, NA, NA)) 
 #' 
 #' 
-#' ### Run transition specific hazard models: Clock forward approach and use of flexible parametric models
+#' ### Run transition specific hazard models: Clock forward approach
 #' 
 #' 
 #' cfwei.list<-vector(3,mode="list")
@@ -102,9 +101,10 @@
 #' attr(pat3, "trans") <- tmat
 #' 
 #' 
+#' #We now run the flexsurvjson function to perform the multi-state model analysis using the function 
+#' #from package flexsurv and the pack the predictions in a json file.
 #' 
-#' 
-#' results_cf <- rpkg::flexsurv_json( model=cfwei.list, vartime=seq(365.25,365.25,by=365.25), qmat=tmat, process="Markov",
+#' results_cf <- rpkg::flexsurvjson( model=cfwei.list, vartime=seq(365.25,365.25,by=365.25), qmat=tmat, process="Markov",
 #'                                    totlos=TRUE, ci.json=FALSE, cl.json=0.95, B.json=10, tcovs=NULL,
 #'                                    Mjson=100, variance=FALSE,
 #'                                    covariates_list=list(pat1,pat2,pat3), 
@@ -122,7 +122,7 @@
 #' @rdname flexsurv_json
 #' @export 
 #' @importFrom stringi stri_sort
-flexsurv_json <- function( model, vartime=seq(1,2,by=1), qmat, process="Markov",
+flexsurvjson <- function( model, vartime=seq(1,2,by=1), qmat, process="Markov",
                            totlos=FALSE, ci.json=FALSE, cl.json=0.95, B.json=50, tcovs=NULL,
                            Mjson=50, variance=FALSE,
                            covariates_list=list(), 
@@ -1358,25 +1358,29 @@ if (length(covariates_list) != 0) {
   
 
   for (d in 1:length(hjson)) {
-    
     hjson_new[[d]]=list()
     
     
     if (length(covariates_list)>=1) { 
       for (c in 1:length(covariates_list)) {
         
-        hjson_new[[d]][[c]]=as.vector(hjson_new[[d]][c,])
+        hjson_new[[d]][[c]]=as.vector(hjson[[d]][c,])
       }
     }
     
     if (length(covariates_list)==0) { 
       
       
-      hjson_new[[d]][[1]]=as.vector(hjson_new[[d]])
+      hjson_new[[d]][[1]]=as.vector(hjson[[d]][1,])
       
     }
     
+    
+    
   } 
+  
+  
+  
   
   names(hjson_new)=names(hjson)
   hjson=hjson_new  
@@ -1448,18 +1452,22 @@ if (length(covariates_list) != 0) {
       if (length(covariates_list)>=1) { 
         for (c in 1:length(covariates_list)) {
           
-          losjson_new[[d]][[c]]=as.vector(losjson_new[[d]][c,])
+          losjson_new[[d]][[c]]=as.vector(losjson[[d]][c,])
         }
       }
       
       if (length(covariates_list)==0) { 
         
         
-        losjson_new[[d]][[1]]=as.vector(losjson_new[[d]][1,])
+        losjson_new[[d]][[1]]=as.vector(losjson[[d]][1,])
         
       }
       
     } 
+    
+    
+    hjson_new=list()
+    
     
     
     
@@ -1536,14 +1544,14 @@ if (length(covariates_list) != 0) {
         if (length(covariates_list)>=1) { 
           for (c in 1:length(covariates_list)) {
             
-            losjson_lci_new[[d]][[c]]=as.vector(losjson_lci_new[[d]][c,])
+            losjson_lci_new[[d]][[c]]=as.vector(losjson_lci[[d]][c,])
           }
         }
         
         if (length(covariates_list)==0) { 
           
           
-          losjson_lci_new[[d]][[1]]=as.vector(losjson_lci_new[[d]][1,])
+          losjson_lci_new[[d]][[1]]=as.vector(losjson_lci[[d]][1,])
           
         }
         
@@ -1618,14 +1626,14 @@ if (length(covariates_list) != 0) {
         if (length(covariates_list)>=1) { 
           for (c in 1:length(covariates_list)) {
             
-            losjson_uci_new[[d]][[c]]=as.vector(losjson_uci_new[[d]][c,])
+            losjson_uci_new[[d]][[c]]=as.vector(losjson_uci[[d]][c,])
           }
         }
         
         if (length(covariates_list)==0) { 
           
           
-          losjson_uci_new[[d]][[1]]=as.vector(losjson_uci_new[[d]][1,])
+          losjson_uci_new[[d]][[1]]=as.vector(losjson_uci[[d]][1,])
           
         }
         
@@ -1712,6 +1720,3 @@ if (length(covariates_list)==0) {
   final_list
   
   }
-
-
-

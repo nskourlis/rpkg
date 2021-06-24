@@ -2,7 +2,7 @@
 % Please edit documentation in R/msmjson.R
 \name{msmjson}
 \alias{msmjson}
-\title{FUNCTION_TITLE}
+\title{msmjson}
 \usage{
 msmjson(
   msm.model,
@@ -73,11 +73,17 @@ specified using explicit time-dependent covariates, and should not be used for m
 \value{
 returns a list of objects: the time variable
 the number of covariate patterns, the names of covariate patterns, the transition matrix,
-the number of transitions, the transition probabilities, transition intensities
-length of stay, the other relevant measures estimated and their confidence intervals (if estimated)
+the number of transitions, the transition probabilities, transition intensity rates, length of stay, probability of visiting each state
+probability each state is next, sojoutn times and confidence intervals of the
+estimations(if estimated).
 }
 \description{
-FUNCTION_DESCRIPTION
+Function msmjson can receive models from msm package.
+It then uses functions from msm package internally to estimate multi-state model
+measures such as transition probabilities, transition intensity rates, length of stay, probability of visiting each state
+probability each state is next, sojoutn times and confidence intervals of the
+estimations. Function flexjson then take these results and reshapes them so that they can
+be fed to MSMplus properly as a json file.
 }
 \details{
 DETAILS
